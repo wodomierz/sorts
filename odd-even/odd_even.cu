@@ -1,4 +1,4 @@
-#include <cstdio>
+//#include <cstdio>
 
 extern "C" {
 
@@ -23,7 +23,12 @@ __global__
 void odd_even_phase1(int* to_sort, int batch_size, int size) {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int thid = x + y*gridDim.x*blockDim.x;
+	int thid = x + y * gridDim.x * blockDim.x;
+//	int d =batch_size /2;
+//	int wireThid = thid + (d) * (thid / d);
+//
+//	int opposite = wireThid + d;
+//	min_max(to_sort, wireThid, opposite, size);
 	if (thid >= size) {
 		return;
 	}
@@ -47,12 +52,12 @@ void odd_even_phase2(int* to_sort, int d, int batch_size, int size) {
 	int local_thid = thid % batch_size;
 
 
-	if (local_thid < d || local_thid + d >= batch_size - 1) {
+	if (local_thid < d || local_thid + d >= batch_size - d) {
 		return;
 	}
 
 	int opposite = thid + d;
-	if (local_thid % (2*d) < d ) {
+	if (local_thid % (2*d) >= d ) {
 		min_max(to_sort, thid,  opposite, size);
 	}
 

@@ -20,13 +20,13 @@ NVCCOPTIONS = -arch sm_20 -ptx
 # Common flags
 COMMONFLAGS += $(INCLUDES)
 NVCCFLAGS += $(COMMONFLAGS) $(NVCCOPTIONS)
-CXXFLAGS += $(COMMONFLAGS)
+CXXFLAGS += $(COMMONFLAGS) -std=c++11
 CFLAGS += $(COMMONFLAGS)
 
 
 
-CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx
-OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o
+CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx odd-even/odd_even_1.ptx
+OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o odd-even/odd_even_1.cpp.o
 TARGET = solution.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 

@@ -12,18 +12,18 @@ static int THREADS_IN_BLOCK = 1024;
 
 using namespace std;
 
-void odd_even(int *to_sort, int size) {
+void odd_even1(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
     CUcontext cuContext;
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create Context");
     CUmodule cuModule = (CUmodule) 0;
-    manageResult(cuModuleLoad(&cuModule, "odd-even/odd_even.ptx"), "cannot load module");
+    manageResult(cuModuleLoad(&cuModule, "odd-even/odd_even_1.ptx"), "cannot load module");
     CUfunction odd_even_phase1;
-    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase11"), "");
     CUfunction odd_even_phase2;
-    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase12"), "");
 
 
     int numberOfBlocks = (size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
@@ -42,11 +42,10 @@ void odd_even(int *to_sort, int size) {
     //fit n to power of 2
     for (n = 1; n < size; n <<= 1);
 
-    for (int batch_size = 2; batch_size <= n; batch_size *= 2) {
-        void *args1[3] = {&deviceToSort, &batch_size, &size};
+    for (int batch_size = 1; batch_size <= n; batch_size *= 2) {
+        void *args1[4] = {&deviceToSort, &batch_size, &size};
         manageResult(cuLaunchKernel(odd_even_phase1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "running");
-        cuCtxSynchronize();
-        for (int d = batch_size / 4; d >= 1; d /= 2) {
+        for (int d = batch_size / 2; d >= 1; d *= 2) {
             void *args2[4] = {&deviceToSort, &d, &batch_size, &size};
 
             manageResult(cuLaunchKernel(odd_even_phase2, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0), "running");

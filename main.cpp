@@ -3,8 +3,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
-#include <climits>
-#include <sys/mman.h>
 
 #include <ctime>
 #include <cstring>
@@ -13,246 +11,230 @@
 
 using namespace std;
 
-void test0();
-void test1();
-void test2();
-void test3();
-void test_big();
 
-void print(int *tab, int n){
+
+
+
+void print(int *tab, int n) {
     for (int i = 0; i < n; ++i) {
         printf("%d \n", tab[i]);
     }
 }
 
-void comparesorts(int n) {
-    // int n = 1024*1024*50;
-    cout << "Size "<< n<< ":"<<endl;
+typedef void (*func_t)(int *, int); // pointer to function with no args and void return
 
-    int *c1 = (int*) malloc(n*sizeof(int));
-    int *c2 = (int*) malloc(n*sizeof(int));
-    int *c3 = (int*) malloc(n*sizeof(int));
-    std::clock_t start;
-    int* d;
-
-    //rand
-    for (int j=0; j<n; ++j) {
-        c1[j] = rand();
-    }
-    memcpy(c2, c1, n*sizeof(int));
-    memcpy(c3, c1, n*sizeof(int));
-
-    start = std::clock();
-    d = bitonic_sort(c1, n);
-    std::cout << "Time for bitonic: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-    start = std::clock();
-    d = bitonic_sort(c3, n);
-    std::cout << "Time for bitonic 2: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-
-    start = std::clock();
-    // sort(c2, c2 + n);
-    std::cout << "Time for stl: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl << endl;
-    free(d);
-
-    // ascending
-    for (int j=0; j<n; ++j) {
-        c1[j] = j;
-    }
-    memcpy(c2, c1, n*sizeof(int));
-    memcpy(c3, c1, n*sizeof(int));
-
-    start = std::clock();
-    d = bitonic_sort(c1, n);
-    std::cout << "Time for bitonic asc: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-    start = std::clock();
-    d = bitonic_sort(c3, n);
-    std::cout << "Time for bitonic asc 2: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-
-    start = std::clock();
-    // sort(c2, c2 + n);
-    std::cout << "Time for stl asc: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl << endl;
-    free(d);
-
-    //descending
-    for (int j=0; j<n; ++j) {
-        c1[j] = n-j;
-    }
-    memcpy(c2, c1, n*sizeof(int));
-    memcpy(c3, c1, n*sizeof(int));
-    start = std::clock();
-    d = bitonic_sort(c1, n);
-    std::cout << "Time for bitonic desc: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-    start = std::clock();
-    // sort(c2, c2 + n);
-    d = bitonic_sort(c3, n);
-    std::cout << "Time for bitonic desc 2: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-
-
-    start = std::clock();
-    std::cout << "Time for stl desc: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl << endl;
-    free(d);
-
-    free(c1);
-    free(c2);
-    free(c3);
+void testTime(func_t f, int *c1, int n, string name) {
+    std::clock_t start = std::clock();
+    f(c1, n);
+    std::cout << "Time for " << name << ": " << (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000) << " ms"
+              << std::endl;
 }
 
-int main(){
-    srand( time( NULL ) );
-    // cout << "===================" <<endl;
-    // cout << "multiples of 1024:" << endl;
-    // cout << "===================" <<endl;
-    // cout << endl;
+void cleanTestTime(func_t f, int const *init, int n, string name) {
+    int *tab = (int *) malloc(n * sizeof(int));
+    memcpy(tab, init, n * sizeof(int));
+    testTime(f, tab, n, name);
+    free(tab);
+}
 
-    // for (int i = 1; i <= 1024*64; i *= 2) {
-    //   comparesorts(i*1024);
-    // }
+void cmpSorts(int n, int *initData) {
+    cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "bitonic");
+    cleanTestTime([](int *tab, int size) -> void { odd_even(tab, size); }, initData, n, "odd-even");
+    cleanTestTime([](int *tab, int size) -> void { sort(tab, tab + size); }, initData, n, "std");
+}
 
-    // cout << endl;
-    // cout << "===================" <<endl;
-    // cout << "not multiples of 1024:" << endl;
-    // cout << "===================" <<endl;
-    // cout << endl;
+void comparesorts(int n) {
+    // int n = 1024*1024*50;
+    cout << "Size " << n << ":" << endl;
+    int *c1 = (int *) malloc(n * sizeof(int));
 
-    // for (int i = 1; i < 1024*64; i *= 2) {
-    //   comparesorts(i*1025);
-    // }
+    //rand
+    for (int j = 0; j < n; ++j) {
+        c1[j] = rand();
+    }
 
-    // cout << endl;
-    // cout << "===================" <<endl;
-    // cout << "big numbers:" << endl;
-    // cout << "===================" <<endl;
-    // cout << endl;
+    cmpSorts(n, c1);
+    // ascending
+    for (int j = 0; j < n; ++j) {
+        c1[j] = j;
+    }
+    cmpSorts(n, c1);
+    //descending
+    for (int j = 0; j < n; ++j) {
+        c1[j] = n - j;
+    }
+    cmpSorts(n, c1);
+}
 
-    // for (int i = 1024*64; i <= 1024*256; i *= 2) {
-    //   comparesorts(i*1024 -1);
-    // }
+void loggTitle(char const *title) {
+    cout << "===================" << endl;
+    cout << title << ":" << endl;
+    cout << "===================" << endl;
+    cout << endl;
+}
+
+void eff_tests() {
+    srand(time(NULL));
+    loggTitle("multiples of 1024");
+    for (int i = 1; i <= 1024 * 64; i *= 2) {
+        comparesorts(i * 1024);
+    }
+    loggTitle("not multiples of 1024");
+    for (int i = 1; i < 1024 * 64; i *= 2) {
+        comparesorts(i * 1025);
+    }
+    loggTitle("big numbers");
+    for (int i = 1024 * 64; i <= 1024 * 256; i *= 2) {
+        comparesorts(i * 1024 - 1);
+    }
+}
+
+
+void testg(func_t sort, int n) {
+    int *c = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
+        c[j] = rand();
+    }
+    sort(c, n);
+
+    for (int j = 0; j < (n - 1); ++j) {
+        if (c[j] > c[j + 1]) {
+            printf("test  %d %d %d %d \n",n, c[j], c[j + 1], j);
+        }
+        assert(c[j] <= c[j + 1]);
+    }
+    printf("test %d ok\n",n);
+    free(c);
+}
+
+void test0(func_t sort);
+void test_big(func_t sort);
+//void test1();
+//
+//void test2();
+//
+//void test3();
+
+
+int main() {
+//    ios_base::sync_with_stdio(false);
+
 
 //    for (int i = 1024*1024*256; i <= 1024*512*1024; i += 33456123) {
 //        comparesorts(i);
-//        // comparesorts(i);
+    // comparesorts(i);
 //    }
 
-     test0();
-//     test1();
-     test2();
-     test3();
-     test_big();
+    test0(odd_even);
+
+    testg(odd_even ,1024 * 2);
+    testg(odd_even ,1024 * 23 * 512);
+    testg(odd_even ,1024 * 1024 * 512);
+
+    testg(odd_even ,10899);
+    testg(odd_even ,788068);
+    testg(odd_even ,607483);
+    test_big(odd_even);
     return 0;
 }
 
-void test0() {
+
+void test0(func_t sort) {
     int n = 1024;
-    int *c = (int*) malloc(n*sizeof(int));
-    for (int j=0; j<n; ++j) {
-        c[j] = n-j;
+    int *c = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
+        c[j] = n - j;
     }
-    int* d = bitonic_sort(c, n);
-    for (int j=0; j<(n-1); ++j) {
-        if (d[j] > d[j + 1]) {
-            // print(d, n);
-            printf("test0 %d %d\n", d[j], d[j+1]);
+    sort(c, n);
+    for (int j = 0; j < (n - 1); ++j) {
+        if (c[j] > c[j + 1]) {
+            printf("test0 %d %d\n", c[j], c[j + 1]);
 
         }
-        assert(d[j] <= d[j + 1]);
-        if (d[j] +1 != d[j + 1]) {
-            // print(d, n);
-            printf("test0 %d %d\n", d[j], d[j+1]);
+        assert(c[j] <= c[j + 1]);
+        if (c[j] + 1 != c[j + 1]) {
+            printf("test0 %d %d\n", c[j], c[j + 1]);
 
         }
-        assert(d[j] +1 == d[j + 1]);
+        assert(c[j] + 1 == c[j + 1]);
     }
     printf("test0 ok\n");
     free(c);
-    free(d);
 }
 
-void test1() {
-    int n = 1024*1024*512;
-    int *c = (int*) malloc(n*sizeof(int));
-    for (int j=0; j<n; ++j){
+void test1(func_t sort) {
+    int n = 1024 * 1024 * 512;
+    int *c = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
         c[j] = rand();
     }
-    int* d = bitonic_sort(c, n);
-    for (int j=0; j<(n-1); ++j) {
-        if (d[j] > d[j + 1]) {
-            printf("test1 %d %d\n", d[j], d[j+1]);
+    sort(c, n);
+    for (int j = 0; j < (n - 1); ++j) {
+        if (c[j] > c[j + 1]) {
+            printf("test1 %d %d\n", c[j], c[j + 1]);
         }
-        assert(d[j] <= d[j + 1]);
+        assert(c[j] <= c[j + 1]);
     }
     printf("test1 ok\n");
     free(c);
-    free(d);
 }
 
 
-void test2() {
+void test2(func_t sort) {
     int n = 1024 * 23;
-    int *c = (int*) malloc(n*sizeof(int));
-    for (int j=0; j<n; ++j){
+    int *c = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
         c[j] = rand();
     }
-    int* d = bitonic_sort(c, n);
+    bitonic_sort(c, n);
 
-    bool costma = false;
-    for (int j=0; j<(n-1); ++j) {
-        if (d[j] > d[j + 1]) {
-            printf("test2 %d %d %d \n", d[j], d[j+1], j);
+    for (int j = 0; j < (n - 1); ++j) {
+        if (c[j] > c[j + 1]) {
+            printf("test2 %d %d %d \n", c[j], c[j + 1], j);
         }
-        if (costma) assert(d[j] <= d[j + 1]);
-        if (d[j] > d[j + 1]) {
-            printf("first time");
-            costma = true;
-        }
-
+         assert(c[j] <= c[j + 1]);
     }
     printf("test2 ok\n");
     free(c);
-    free(d);
 }
 
 void test3() {
     int n = 10899;
-    int *c = (int*) malloc(n*sizeof(int));
-    for (int j=0; j<n; ++j){
-        c[j] = rand();
+    int *d = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
+        d[j] = rand();
     }
-    int* d = bitonic_sort(c, n);
-    for (int j=0; j<(n-1); ++j) {
+    bitonic_sort(d, n);
+    for (int j = 0; j < (n - 1); ++j) {
         if (d[j] > d[j + 1]) {
-            printf("test3 %d %d\n", d[j], d[j+1]);
+            printf("test3 %d %d\n", d[j], d[j + 1]);
         }
         assert(d[j] <= d[j + 1]);
     }
     printf("test3 ok\n");
-    free(c);
     free(d);
 }
 
-void test_big() {
+void test_big(func_t sort) {
     int times = 1;
     int min = 1023;
-    int max = 1024*1024;
+    int max = 1024 * 1024;
+
     while (times++ < 50) {
-        int n = min + (rand() % (int)(max - min + 1));
-        int *c = (int*) malloc(n*sizeof(int));
-        for (int j=0; j<n; ++j) {
-            c[j] = rand();
+        int n = min + (rand() % (int) (max - min + 1));
+        int *d = (int *) malloc(n * sizeof(int));
+        for (int j = 0; j < n; ++j) {
+            d[j] = rand();
         }
-        int* d = bitonic_sort(c, n);
-        for (int j=0; j<(n-1); ++j) {
+        sort(d, n);
+        for (int j = 0; j < (n - 1); ++j) {
             if (d[j] > d[j + 1]) {
-                printf("testbig%d %d %d\n", times, d[j], d[j+1]);
+                printf("testbig %d times %d %d %d %d\n", n, times, j, d[j], d[j + 1]);
             }
             assert(d[j] <= d[j + 1]);
         }
-        free(c);
         free(d);
     }
+
     printf("testbig ok\n");
 }

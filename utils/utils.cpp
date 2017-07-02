@@ -3,7 +3,6 @@
 //
 
 #include "utils.h"
-#include <stdio.h>
 
 void manageError(CUresult res, std::string message, int line, const char* file) {
     if (res != CUDA_SUCCESS) {
