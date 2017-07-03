@@ -15,15 +15,9 @@ using namespace std;
 
 
 
-double odd_even_millis = 0;
-double odd_even1_millis = 0;
-double bitonic_millis = 0;
-double bitonic_millis_bit = 0;
 
-vector<double> odd_even1_results;
-vector<double> odd_even_results;
-vector<double> bitonic1_results;
-vector<double> bitonic2_results;
+vector<double> results1;
+vector<double> results;
 
 
 double res(vector<double>& results, vector<double>& results_opt) {
@@ -76,31 +70,13 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
     return res;
 }
 
-void cmpBitonicSorts(int n, int* initData) {
-    double bitonic_m = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size, false); }, initData, n, "bitonic");
-    double bitonic_m1 = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size, true); }, initData, n, "bitonic bit");
-    odd_even1_results.push_back(bitonic_m1);
-    odd_even_results.push_back(bitonic_m);
-    odd_even_millis += bitonic_m;
-    odd_even1_millis += bitonic_m1;
-}
+
 
 void cmpSorts(int n, int *initData) {
-//    bitonic_millis += cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, false); }, initData, n, "bitonic");
-//    bitonic_millis_bit += cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, true); }, initData, n, "bitonic opt");
-
-
-    double odd_even_m = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, 'b'); }, initData, n, "odd-even");
-    double odd_even_m1 = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, 't'); }, initData, n, "odd-even1");
-    odd_even1_results.push_back(odd_even_m1);
-    odd_even_results.push_back(odd_even_m);
-    odd_even_millis += odd_even_m;
-    odd_even1_millis += odd_even_m1;
-//    cleanTestTime([](int *tab, int size) -> void { sort(tab, tab + size); }, initData, n, "std");
-//    cout << "diff bit opt 2 over bit "<< bitonic_millis - bitonic_millis_bit << endl;
-//    cout << "diff odev over oddev1 "<< odd_even1_millis - odd_even_millis << endl;
-//    cout << "diff odev1 over odev "<< odd_even_millis - odd_even1_millis << endl;
-//    cout << "diff odev1 over bit "<< bitonic_millis - odd_even1_millis << endl;
+    double m1 = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size); }, initData, n, "odd-even");
+    double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n, "bitonic");
+    results1.push_back(m1);
+    results.push_back(m);
 
 }
 
@@ -163,11 +139,11 @@ void eff_tests() {
         comparesorts(i);
         comparesorts(i);
     }
-    cout << "FINAL bit oddeven1 over oddeven " << res(odd_even_results, odd_even1_results) << endl;
+    cout << "FINAL bit oddeven over bitonic " << res(results, results1) << endl;
 }
 
 
-void testg(func_t sort, int n) {
+void testg(func_withtime sort, int n) {
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
         c[j] = rand();
@@ -184,20 +160,20 @@ void testg(func_t sort, int n) {
     free(c);
 }
 
-void test_big(func_t sort);
-void test01(func_t sort);
+void test_big(func_withtime sort);
+void test01(func_withtime sort);
 
 void test_correctness() {
-    test01(odd_even1);
+    test01(odd_even);
 
-    testg(odd_even1 ,1024 * 2);
-    testg(odd_even1 ,1024 * 23 * 512);
-    testg(odd_even1 ,1024 * 1024 * 512);
+    testg(odd_even ,1024 * 2);
+    testg(odd_even ,1024 * 23 * 512);
+    testg(odd_even ,1024 * 1024 * 512);
 
-    testg(odd_even1 ,10899);
-    testg(odd_even1 ,788068);
-    testg(odd_even1 ,607483);
-    test_big(odd_even1);
+    testg(odd_even ,10899);
+    testg(odd_even ,788068);
+    testg(odd_even ,607483);
+    test_big(odd_even);
 }
 
 int main() {
@@ -210,7 +186,7 @@ int main() {
     return 0;
 }
 
-void test01(func_t sort) {
+void test01(func_withtime sort) {
 //    int n = 1024;
     int n = 8;
     int *c = (int *) malloc(n * sizeof(int));
@@ -238,7 +214,7 @@ void test01(func_t sort) {
     free(c);
 }
 
-void test0(func_t sort) {
+void test0(func_withtime sort) {
 //    int n = 1024;
     int n = 16;
     int *c = (int *) malloc(n * sizeof(int));
@@ -263,7 +239,7 @@ void test0(func_t sort) {
 }
 
 
-void test_big(func_t sort) {
+void test_big(func_withtime sort) {
     int times = 1;
     int min = 1023;
     int max = 1024 * 1024;

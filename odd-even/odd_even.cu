@@ -17,7 +17,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 } ;
 
 __global__
-void odd_even_phase11(int *to_sort, int d_pow, int size) {
+void odd_even_phase1(int *to_sort, int d_pow, int size) {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 	int thid = x + y * gridDim.x * blockDim.x;
@@ -28,28 +28,6 @@ void odd_even_phase11(int *to_sort, int d_pow, int size) {
 	min_max(to_sort, wireThid, opposite, size);
 }
 
-__global__
-void odd_even_phase12(int *to_sort, int d_power, int period,  int size) {
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int thid = x + y * gridDim.x * blockDim.x;
-
-	int wire_id = thid + (((thid>>d_power) + ((thid / period) << 1) + 1) << d_power);
-	int opposite = wire_id + (1 << d_power);
-	min_max(to_sort, wire_id, opposite, size);
-
-}
-__global__
-void odd_even_phase1(int *to_sort, int d, int size) {
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int thid = x + y * gridDim.x * blockDim.x;
-
-	int wireThid = thid + (d) * (thid / d);
-
-	int opposite = wireThid + d;
-	min_max(to_sort, wireThid, opposite, size);
-}
 
 __global__
 void odd_even_phase2(int *to_sort, int d_power, int half_batch_size, int size) {
@@ -64,31 +42,6 @@ void odd_even_phase2(int *to_sort, int d_power, int half_batch_size, int size) {
 	int wire_id = thid + (((thid>>d_power) + ((thid / period) << 1) + 1) << d_power);
 	int opposite = wire_id + d;
 	min_max(to_sort, wire_id, opposite, size);
-
-}
-
-__global__
-void odd_even_phase1_old(int *to_sort, int d, int size) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int thid = x + y * gridDim.x * blockDim.x;
-
-    int wireThid = thid + (d) * (thid / d);
-
-    int opposite = wireThid + d;
-    min_max(to_sort, wireThid, opposite, size);
-}
-
-__global__
-void odd_even_phase2_old(int *to_sort, int d, int half_batch_size, int size) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int thid = x + y * gridDim.x * blockDim.x;
-
-    int period = half_batch_size - d;
-    int wire_id = thid + d*(thid/d + 2*(thid / period) + 1);
-    int opposite = wire_id + d;
-    min_max(to_sort, wire_id, opposite, size);
 
 }
 

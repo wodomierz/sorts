@@ -4,85 +4,39 @@
 #include "cuda.h"
 #include <cstdio>
 #include <iostream>
-
+#include <ctime>
 #include "../utils/utils.h"
 
 static int THREADS_IN_BLOCK = 1024;
 
 using namespace std;
 
-void bitonic1_run(CUmodule cuModule, int n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
+double run(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
     CUfunction bitonic_merge;
     manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge" ) , "cannot load function");
     CUfunction bitonic_triangle_merge;
     manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule,"bitonic_triangle_merge"), "cannot load function");
 
-//    int count = 0;
-    for (int d_traingle = 2; d_traingle <= n; d_traingle *= 2) {
-        void* args1[3] = { &deviceToSort, &d_traingle, &size};
-
-        manageResult(cuLaunchKernel(bitonic_triangle_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),"running");
-        cuCtxSynchronize();
-//        count ++;
-        for (int d = d_traingle / 4; d >= 1; d /= 2) {
-//            count++;
-            void* args2[3] = { &deviceToSort, &d, &size};
-            manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),"running");
-            cuCtxSynchronize();
-        }
-    }
-//    cout <<"old"<< count << endl;
-}
-
-void bitonicbit_run(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
-    CUfunction bitonic_merge;
-    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge2" ) , "cannot load function");
-    CUfunction bitonic_triangle_merge;
-    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule,"bitonic_triangle_merge"), "cannot load function");
-
-//    int count = 0;
+    std::clock_t start = std::clock();
     for (int d_half_traingle_p = 0; d_half_traingle_p <= power_n -1; d_half_traingle_p++) {
-        int half_tr = 1 << d_half_traingle_p;
-        void* args1[3] = { &deviceToSort, &half_tr, &size};
-
-        manageResult(cuLaunchKernel(bitonic_triangle_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),"running");
-        cuCtxSynchronize();
-//        count++;
-        for (int d_p = d_half_traingle_p -1; d_p >= 0; d_p--) {
-            void* args2[3] = { &deviceToSort, &d_p, &size};
-            manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),"running");
-            cuCtxSynchronize();
-//            count++;
-        }
-    }
-//    cout <<"bit "<<power_n << " " << n <<" "<< count << endl;
-}
-void bitonicbitbit_run(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
-    CUfunction bitonic_merge;
-    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge2" ) , "cannot load function");
-    CUfunction bitonic_triangle_merge;
-    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule,"bitonic_triangle_merge2"), "cannot load function");
-
-//    int count = 0;
-    for (int d_half_traingle_p = 0; d_half_traingle_p <= power_n -1; d_half_traingle_p++) {
-//        int half_tr = 1 << d_half_traingle_p;
         void* args1[3] = { &deviceToSort, &d_half_traingle_p, &size};
 
         manageResult(cuLaunchKernel(bitonic_triangle_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),"running");
         cuCtxSynchronize();
-//        count++;
         for (int d_p = d_half_traingle_p -1; d_p >= 0; d_p--) {
             void* args2[3] = { &deviceToSort, &d_p, &size};
             manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),"running");
             cuCtxSynchronize();
-//            count++;
         }
     }
-//    cout <<"bit "<<power_n << " " << n <<" "<< count << endl;
+    double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
+    std::cout << "Time for " << "b" << ": " << delta << " ms"
+              << std::endl;
+    return delta;
 }
 
 
-void bitonic_sort(int* to_sort, int size, bool bit) {
+double bitonic_sort(int* to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
@@ -110,8 +64,7 @@ void bitonic_sort(int* to_sort, int size, bool bit) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
-    if(bit) bitonicbitbit_run(cuModule, power_n, deviceToSort, size, x_dim, y_dim);
-    else bitonicbit_run(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
+    double result = run(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
 
 
     cuMemcpyDtoH((void*)to_sort, deviceToSort, size * sizeof(int));
@@ -119,5 +72,6 @@ void bitonic_sort(int* to_sort, int size, bool bit) {
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
+    return result;
 }
 

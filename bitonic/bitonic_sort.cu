@@ -17,32 +17,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 } ;
 
 __global__
-void bitonic_merge(int *to_sort, int d, int size) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int thid = x + y * gridDim.x * blockDim.x;
-    int wireThid = thid + (d) * (thid / d);
-
-    int opposite = wireThid + d;
-    min_max(to_sort, wireThid, opposite, size);
-}
-
-__global__
-void bitonic_triangle_merge(int *to_sort, int d_traingle, int size) {
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int thid = x + y * gridDim.x * blockDim.x;
-
-    int halftriangle = d_traingle / 2;
-    int wireThid = thid + halftriangle * (thid / halftriangle);
-
-    int local_thid = wireThid % d_traingle;
-    int opposite = wireThid - local_thid + d_traingle - 1 - local_thid;
-    min_max(to_sort, wireThid, opposite, size);
-}
-
-__global__
-void bitonic_merge2(int *to_sort, int d_power, int size) {
+void bitonic_merge(int *to_sort, int d_power, int size) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int thid = x + y * gridDim.x * blockDim.x;
@@ -54,12 +29,11 @@ void bitonic_merge2(int *to_sort, int d_power, int size) {
 }
 
 __global__
-void bitonic_triangle_merge2(int *to_sort, int half_triangle_power, int size) {
+void bitonic_triangle_merge(int *to_sort, int half_triangle_power, int size) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int thid = x + y * gridDim.x * blockDim.x;
 
-//    int halftriangle = d_traingle / 2;
     int d_triangle = 1 << (half_triangle_power + 1);
     int wireThid = thid + ((thid >> half_triangle_power) << half_triangle_power);
     int local_thid = wireThid & ( d_triangle-1);
