@@ -9,10 +9,36 @@
 #include <algorithm>
 #include <iostream>
 
+#include <vector>
+
 using namespace std;
 
 
 
+double odd_even_millis = 0;
+double odd_even1_millis = 0;
+double bitonic_millis = 0;
+double bitonic_millis_bit = 0;
+
+vector<double> odd_even1_results;
+vector<double> odd_even_results;
+vector<double> bitonic1_results;
+vector<double> bitonic2_results;
+
+
+double res(vector<double>& results, vector<double>& results_opt) {
+    vector<double> diffs;
+    double r = 0;
+    for (int i=1; i< results.size(); ++i) {
+        diffs.push_back(results[i] - results_opt[i]);
+    }
+    sort(diffs.begin(), diffs.end());
+
+    for (int i=1; i< diffs.size() -1; ++i) {
+        r += diffs[i];
+    }
+    return r/(diffs.size()-2);
+}
 
 
 void print(int *tab, int n) {
@@ -22,49 +48,60 @@ void print(int *tab, int n) {
 }
 
 typedef void (*func_t)(int *, int); // pointer to function with no args and void return
+typedef double (*func_withtime)(int *, int);
 
-void testTime(func_t f, int *c1, int n, string name) {
+double testTime(func_t f, int *c1, int n, string name) {
     std::clock_t start = std::clock();
     f(c1, n);
-    std::cout << "Time for " << name << ": " << (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000) << " ms"
+    double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
+
+    std::cout << "Time for " << name << ": " << delta << " ms"
               << std::endl;
+    return delta;
 }
 
-void cleanTestTime(func_t f, int const *init, int n, string name) {
+double cleanTestTime(func_t f, int const *init, int n, string name) {
     int *tab = (int *) malloc(n * sizeof(int));
     memcpy(tab, init, n * sizeof(int));
-    testTime(f, tab, n, name);
+    double delta = testTime(f, tab, n, name);
     free(tab);
+    return delta;
+}
+
+double cleanTest(func_withtime f, int const *init, int n, string name) {
+    int *tab = (int *) malloc(n * sizeof(int));
+    memcpy(tab, init, n * sizeof(int));
+    double res = f(tab, n);
+    free(tab);
+    return res;
+}
+
+void cmpBitonicSorts(int n, int* initData) {
+    double bitonic_m = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size, false); }, initData, n, "bitonic");
+    double bitonic_m1 = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size, true); }, initData, n, "bitonic bit");
+    odd_even1_results.push_back(bitonic_m1);
+    odd_even_results.push_back(bitonic_m);
+    odd_even_millis += bitonic_m;
+    odd_even1_millis += bitonic_m1;
 }
 
 void cmpSorts(int n, int *initData) {
-    cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "bitonic");
-    cleanTestTime([](int *tab, int size) -> void { odd_even(tab, size); }, initData, n, "odd-even");
+//    bitonic_millis += cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, false); }, initData, n, "bitonic");
+//    bitonic_millis_bit += cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, true); }, initData, n, "bitonic opt");
+
+
+    double odd_even_m = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, 'b'); }, initData, n, "odd-even");
+    double odd_even_m1 = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, 't'); }, initData, n, "odd-even1");
+    odd_even1_results.push_back(odd_even_m1);
+    odd_even_results.push_back(odd_even_m);
+    odd_even_millis += odd_even_m;
+    odd_even1_millis += odd_even_m1;
 //    cleanTestTime([](int *tab, int size) -> void { sort(tab, tab + size); }, initData, n, "std");
-    cleanTestTime([](int *tab, int size) -> void { odd_even1(tab, size); }, initData, n, "odd-even1");
-}
+//    cout << "diff bit opt 2 over bit "<< bitonic_millis - bitonic_millis_bit << endl;
+//    cout << "diff odev over oddev1 "<< odd_even1_millis - odd_even_millis << endl;
+//    cout << "diff odev1 over odev "<< odd_even_millis - odd_even1_millis << endl;
+//    cout << "diff odev1 over bit "<< bitonic_millis - odd_even1_millis << endl;
 
-void comparesorts(int n) {
-    // int n = 1024*1024*50;
-    cout << "Size " << n << ":" << endl;
-    int *c1 = (int *) malloc(n * sizeof(int));
-
-    //rand
-    for (int j = 0; j < n; ++j) {
-        c1[j] = rand();
-    }
-
-    cmpSorts(n, c1);
-    // ascending
-    for (int j = 0; j < n; ++j) {
-        c1[j] = j;
-    }
-    cmpSorts(n, c1);
-    //descending
-    for (int j = 0; j < n; ++j) {
-        c1[j] = n - j;
-    }
-    cmpSorts(n, c1);
 }
 
 void loggTitle(char const *title) {
@@ -73,6 +110,35 @@ void loggTitle(char const *title) {
     cout << "===================" << endl;
     cout << endl;
 }
+
+void comparesorts(int n) {
+    // int n = 1024*1024*50;
+    cout << "Size " << n << ":" << endl;
+    int *c1 = (int *) malloc(n * sizeof(int));
+
+
+    //rand
+    for (int j = 0; j < n; ++j) {
+        c1[j] = rand();
+    }
+    loggTitle("rand");
+    cmpSorts(n, c1);
+    // ascending
+    for (int j = 0; j < n; ++j) {
+        c1[j] = j;
+    }
+    loggTitle("asc");
+    cmpSorts(n, c1);
+
+    //descending
+    for (int j = 0; j < n; ++j) {
+        c1[j] = n - j;
+    }
+    loggTitle("desc");
+    cmpSorts(n, c1);
+}
+
+
 
 void eff_tests() {
     srand(time(NULL));
@@ -88,10 +154,16 @@ void eff_tests() {
 //    for (int i = 1024 * 64; i <= 1024 * 256; i *= 2) {
 //        comparesorts(i * 1024 - 1);
 //    }
-    for (int i = 1024*1024*256; i <= 1024*512*1024; i += 33456123) {
+//    for (int i = 1024*1024*256; i <= 1024*512*1024; i += 33456123) {
+//        comparesorts(i);
+//         comparesorts(i);
+//    }
+    for (int i = 1024*1024; i <= 1024*64*1024; i += 33456123) {
         comparesorts(i);
-         comparesorts(i);
+        comparesorts(i);
+        comparesorts(i);
     }
+    cout << "FINAL bit oddeven1 over oddeven " << res(odd_even_results, odd_even1_results) << endl;
 }
 
 
@@ -112,26 +184,20 @@ void testg(func_t sort, int n) {
     free(c);
 }
 
-void test0(func_t sort);
 void test_big(func_t sort);
-//void test1();
-//
-//void test2();
-//
-//void test3();
 void test01(func_t sort);
 
 void test_correctness() {
-    test0(odd_even1);
+    test01(odd_even1);
 
     testg(odd_even1 ,1024 * 2);
-    testg(odd_even ,1024 * 23 * 512);
-    testg(odd_even ,1024 * 1024 * 512);
+    testg(odd_even1 ,1024 * 23 * 512);
+    testg(odd_even1 ,1024 * 1024 * 512);
 
-    testg(odd_even ,10899);
-    testg(odd_even ,788068);
-    testg(odd_even ,607483);
-    test_big(odd_even);
+    testg(odd_even1 ,10899);
+    testg(odd_even1 ,788068);
+    testg(odd_even1 ,607483);
+    test_big(odd_even1);
 }
 
 int main() {
@@ -146,7 +212,7 @@ int main() {
 
 void test01(func_t sort) {
 //    int n = 1024;
-    int n = 16;
+    int n = 8;
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
         c[j] = n - j;
@@ -196,58 +262,6 @@ void test0(func_t sort) {
     free(c);
 }
 
-void test1(func_t sort) {
-    int n = 1024 * 1024 * 512;
-    int *c = (int *) malloc(n * sizeof(int));
-    for (int j = 0; j < n; ++j) {
-        c[j] = rand();
-    }
-    sort(c, n);
-    for (int j = 0; j < (n - 1); ++j) {
-        if (c[j] > c[j + 1]) {
-            printf("test1 %d %d\n", c[j], c[j + 1]);
-        }
-        assert(c[j] <= c[j + 1]);
-    }
-    printf("test1 ok\n");
-    free(c);
-}
-
-
-void test2(func_t sort) {
-    int n = 1024 * 23;
-    int *c = (int *) malloc(n * sizeof(int));
-    for (int j = 0; j < n; ++j) {
-        c[j] = rand();
-    }
-    bitonic_sort(c, n);
-
-    for (int j = 0; j < (n - 1); ++j) {
-        if (c[j] > c[j + 1]) {
-            printf("test2 %d %d %d \n", c[j], c[j + 1], j);
-        }
-         assert(c[j] <= c[j + 1]);
-    }
-    printf("test2 ok\n");
-    free(c);
-}
-
-void test3() {
-    int n = 10899;
-    int *d = (int *) malloc(n * sizeof(int));
-    for (int j = 0; j < n; ++j) {
-        d[j] = rand();
-    }
-    bitonic_sort(d, n);
-    for (int j = 0; j < (n - 1); ++j) {
-        if (d[j] > d[j + 1]) {
-            printf("test3 %d %d\n", d[j], d[j + 1]);
-        }
-        assert(d[j] <= d[j + 1]);
-    }
-    printf("test3 ok\n");
-    free(d);
-}
 
 void test_big(func_t sort) {
     int times = 1;

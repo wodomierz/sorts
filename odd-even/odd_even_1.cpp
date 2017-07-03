@@ -27,9 +27,10 @@ void odd_even1(int *to_sort, int size) {
 
 
     int n;
+    int power = 0;
     //fit n to power of 2
-    for (n = 1; n < size; n <<= 1);
-    int half_size = n/2;
+    for (n = 1; n < size; n <<= 1, power++);
+    int half_size = n / 2;
 
     int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
     int max_grid_dim_x = 32768;
@@ -43,15 +44,19 @@ void odd_even1(int *to_sort, int size) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
-
-
-    for (int batch_size = 2; batch_size <= n; batch_size *= 2) {
-        void *args1[3] = {&deviceToSort, &batch_size, &size};
-        manageResult(cuLaunchKernel(odd_even_phase1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "running");
+//    int period;
+    for (int pow__half_batch = 0; pow__half_batch <= power - 1; pow__half_batch++) {
+        int half_batch = 1 << pow__half_batch;
+//        int half_batch = batch_size / 2;
+        void *args1[3] = {&deviceToSort, &pow__half_batch, &size};
+        manageResult(cuLaunchKernel(odd_even_phase1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),
+                     "running");
         cuCtxSynchronize();
-        for (int d = batch_size / 4; d >= 1; d /= 2) {
-            void *args2[4] = {&deviceToSort, &d, &batch_size, &size};
-            manageResult(cuLaunchKernel(odd_even_phase2, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0), "running");
+        for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
+            int period = half_batch - (1 << d_power);
+            void *args2[5] = {&deviceToSort, &d_power, &period, &size};
+            manageResult(cuLaunchKernel(odd_even_phase2, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),
+                         "running");
             cuCtxSynchronize();
         }
 
