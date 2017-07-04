@@ -1,5 +1,6 @@
 #include "bitonic/bitonic_sort.h"
 #include "odd-even/odd_even.h"
+#include "radix/radixsort.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -80,6 +81,14 @@ void cmpSorts(int n, int *initData) {
 
 }
 
+void cmpSorts1(int n, int *initData) {
+    double m1 = cleanTestTime([](int *tab, int size) -> void { radixsort(tab, size); }, initData, n, "radix");
+    double m = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size); }, initData, n, "bitonic");
+    results1.push_back(m1);
+    results.push_back(m);
+
+}
+
 void loggTitle(char const *title) {
     cout << "===================" << endl;
     cout << title << ":" << endl;
@@ -139,7 +148,7 @@ void eff_tests() {
         comparesorts(i);
         comparesorts(i);
     }
-    cout << "FINAL bit oddeven over bitonic " << res(results, results1) << endl;
+    cout << "FINAL bit radix over bitonic " << res(results, results1) << endl;
 }
 
 
@@ -163,17 +172,21 @@ void testg(func_withtime sort, int n) {
 void test_big(func_withtime sort);
 void test01(func_withtime sort);
 
+double radix1(int* tab, int size) {
+    radixsort(tab, size);
+}
 void test_correctness() {
-    test01(odd_even);
+    test01(radix1);
+    testg(radix1, 1025);
 
-    testg(odd_even ,1024 * 2);
-    testg(odd_even ,1024 * 23 * 512);
-    testg(odd_even ,1024 * 1024 * 512);
+    testg(radix1 ,1024 * 2);
+    testg(radix1 ,1024 * 23 * 512);
+    testg(radix1 ,1024 * 1024 * 512);
 
-    testg(odd_even ,10899);
-    testg(odd_even ,788068);
-    testg(odd_even ,607483);
-    test_big(odd_even);
+    testg(radix1 ,10899);
+    testg(radix1 ,788068);
+    testg(radix1 ,607483);
+    test_big(radix1);
 }
 
 int main() {
@@ -181,8 +194,8 @@ int main() {
 
 
 //
-    eff_tests();
-//    test_correctness();
+//    eff_tests();
+    test_correctness();
     return 0;
 }
 

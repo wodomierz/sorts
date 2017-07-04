@@ -25,8 +25,10 @@ CFLAGS += $(COMMONFLAGS)
 
 
 
-CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx odd-even/odd_even_1.ptx
-OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o odd-even/odd_even_1.cpp.o
+CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx odd-even/odd_even_1.ptx radix/radixsort.ptx
+OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o odd-even/odd_even_1.cpp.o \
+radix/radixsort.cpp.o
+
 TARGET = solution.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 
