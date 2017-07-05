@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include <bitset>
 #include <vector>
 
 using namespace std;
@@ -153,15 +154,29 @@ void eff_tests() {
 
 
 void testg(func_withtime sort, int n) {
+    srand(time(NULL));
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
         c[j] = rand();
     }
+//    for (int j = 0; j< n; ++j) {
+//        c[j] = c[j]&((1<<31) - 1);
+//    }
     sort(c, n);
+
 
     for (int j = 0; j < (n - 1); ++j) {
         if (c[j] > c[j + 1]) {
+            std::bitset<32> first(c[j]);
+            std::cout << first << endl;
+            std::bitset<32> second(c[j+1]);
+            std::cout << second << endl;
             printf("test  %d %d %d %d \n",n, c[j], c[j + 1], j);
+            for (int i = 0 ; i < 8; ++i) {
+                std::bitset<32> b(c[i]);
+                std::cout << b << endl;
+            }
+            printf("\n");
         }
         assert(c[j] <= c[j + 1]);
     }
@@ -176,13 +191,13 @@ double radix1(int* tab, int size) {
     radixsort(tab, size);
 }
 void test_correctness() {
-    test01(radix1);
+//    test01(radix1);
     testg(radix1, 1025);
-
+//
     testg(radix1 ,1024 * 2);
     testg(radix1 ,1024 * 23 * 512);
-    testg(radix1 ,1024 * 1024 * 512);
-
+//    testg(radix1 ,1024 * 1024 * 512);
+//
     testg(radix1 ,10899);
     testg(radix1 ,788068);
     testg(radix1 ,607483);
@@ -200,8 +215,8 @@ int main() {
 }
 
 void test01(func_withtime sort) {
-//    int n = 1024;
-    int n = 8;
+    int n = 1024;
+//    int n = 8;
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
         c[j] = n - j;
@@ -256,12 +271,15 @@ void test_big(func_withtime sort) {
     int times = 1;
     int min = 1023;
     int max = 1024 * 1024;
-
+    srand(time(NULL));
     while (times++ < 50) {
         int n = min + (rand() % (int) (max - min + 1));
         int *d = (int *) malloc(n * sizeof(int));
         for (int j = 0; j < n; ++j) {
             d[j] = rand();
+        }
+        for (int j = 0; j< n; ++j) {
+            d[j] = d[j]&((1<<30) - 1);
         }
         sort(d, n);
         for (int j = 0; j < (n - 1); ++j) {

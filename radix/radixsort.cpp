@@ -26,8 +26,10 @@ void radixsort(int* to_sort, int size){
     manageResult(cuModuleGetFunction(&prefixSum, cuModule, "prefixSum"), "func");
 
 
-    
+
+//    int numberOfBlocks = (size+2048-1)/2048;
     int numberOfBlocks = (size+2048-1)/2048;
+
     // int n = 2048*numberOfBlocks;
     int* prefixSums;
     CUdeviceptr localSums;
@@ -54,15 +56,15 @@ void radixsort(int* to_sort, int size){
 
     for (mask=0; mask < 31 ; mask++ ) {
         args[0] = &tab[mask%2];
-        
+
         cuLaunchKernel(prefixSum, numberOfBlocks, 1, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0);
-        
+
         cuCtxSynchronize();
 
         for (int j=1; j <= numberOfBlocks; ++j) {
             prefixSums[j] += prefixSums[j-1];
         }
-        number_of_zeros = n - prefixSums[numberOfBlocks]; 
+        number_of_zeros = n - prefixSums[numberOfBlocks];
 
         args1[0] = &tab[mask%2];
         args1[1] = &tab[1 - mask%2];
@@ -72,7 +74,7 @@ void radixsort(int* to_sort, int size){
     }
 //    int* result = (int*) malloc(sizeof(int) * size);
 
-    cuMemcpyDtoH((void*) to_sort, tab[0], size * sizeof(int));
+    cuMemcpyDtoH((void*) to_sort, tab[1], size * sizeof(int));
 
 
     cuMemFreeHost((void*)prefixSums);
