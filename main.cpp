@@ -75,8 +75,8 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
 
 
 void cmpSorts(int n, int *initData) {
-    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, true); }, initData, n, "odd-even");
     double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, false); }, initData, n, "bitonic");
+    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, true); }, initData, n, "odd-even");
     results1.push_back(m1);
     results.push_back(m);
 
@@ -144,7 +144,7 @@ void eff_tests() {
 //        comparesorts(i);
 //         comparesorts(i);
 //    }
-    comparesorts(1024);
+    comparesorts(2048);
 
     for (int i = 0; i <= 3; i ++) {
         comparesorts(1024 * 1024 * 32);
@@ -183,20 +183,22 @@ void testg(func_withtime sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test  %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = 0 ; i < 32; ++i) {
-                cout << c[i] << endl;
-//                std::bitset<32> b(c[i]);
-//                std::cout << b << endl;
-            }
-            cout <<"dupeczka" << endl;
-            for (int i = 1024 ; i < 1064; ++i) {
-                cout << c[i] << endl;
-//                std::bitset<32> b(c[i]);
-//                std::cout << b << endl;
-            }
+//            for (int i = 0 ; i < 32; ++i) {
+//                cout << c[i] << endl;
+////                std::bitset<32> b(c[i]);
+////                std::cout << b << endl;
+//            }
+//            cout <<"dupeczka" << endl;
+//            cout << endl << endl;
+//            for (int i = 2048 ; i < 1064; ++i) {
+//                cout << c[i] << endl;
+////                std::bitset<32> b(c[i]);
+////                std::cout << b << endl;
+//            }
             printf("\n");
         }
-        if (!firsttime) assert(c[j] <= c[j + 1]);
+//        if (!firsttime)
+            assert(c[j] <= c[j + 1]);
         if (c[j] > c[j + 1]) {firsttime = false;}
     }
     printf("test %d ok\n",n);

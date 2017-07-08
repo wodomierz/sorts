@@ -35,7 +35,23 @@ double run(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, i
     return delta;
 }
 
-double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
+void firstMerge1(CUmodule cuModule, CUdeviceptr deviceToSort, int x_dim, int y_dim) {
+    CUfunction bitonic_merge;
+    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule,"bitonic_merge1"), "cannot load function");
+    void* args[1] = {&deviceToSort};
+    manageResult(cuLaunchKernel(bitonic_merge, 2*x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
+    cuCtxSynchronize();
+}
+
+void firstMerge2(CUmodule cuModule, CUdeviceptr deviceToSort, int x_dim, int y_dim) {
+    CUfunction bitonic_merge;
+    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule,"bitonic_merge2"), "cannot load function");
+    void* args[1] = {&deviceToSort};
+    manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
+    cuCtxSynchronize();
+}
+
+double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim, bool opt) {
 
     CUfunction bitonic_merge1;
     manageResult(cuModuleGetFunction(&bitonic_merge1, cuModule, "bitonic_merge1" ) , "cannot load function");
@@ -47,10 +63,15 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
 
     std::clock_t start = std::clock();
 
+//    void* args[1] = {&deviceToSort};
+//    manageResult(cuLaunchKernel(bitonic_merge1, x_dim*2, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
+//    cuCtxSynchronize();
 
-    void* args[1] = { &deviceToSort};
-    manageResult(cuLaunchKernel(bitonic_merge1, x_dim*2, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
-    cuCtxSynchronize();
+    if (opt) {
+        firstMerge2(cuModule, deviceToSort,x_dim, y_dim);
+    } else {
+        firstMerge1(cuModule, deviceToSort, x_dim, y_dim);
+    }
 
     for (int d_half_traingle_p = 10; d_half_traingle_p <= power_n -1; d_half_traingle_p++) {
         void* args1[3] = { &deviceToSort, &d_half_traingle_p, &size};
@@ -68,6 +89,7 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
               << std::endl;
     return delta;
 }
+
 
 
 
@@ -100,8 +122,8 @@ double bitonic_sort(int* to_sort, int size, bool opt) {
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
     double result;
-     if (opt) result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
-     else result = run(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
+     if (opt) result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim, true);
+     else result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim, false);
 
 
     cuMemcpyDtoH((void*)to_sort, deviceToSort, size * sizeof(int));
