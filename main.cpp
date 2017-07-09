@@ -25,6 +25,7 @@ vector<double> results;
 
 
 double res(vector<double>& results, vector<double>& results_opt) {
+    //res
     vector<double> diffs;
     double r = 0;
     for (int i=1; i< results.size(); ++i) {
@@ -215,7 +216,7 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
-    bitonic_sort(tab, size, true);
+    sample_rand(tab, size);
 }
 void test_correctness() {
 //    test01(radix1);

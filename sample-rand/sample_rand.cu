@@ -2,7 +2,7 @@
 
 extern "C" {
 
-__device__ int findIndex(int e) {
+__device__ int findIndex(int e, int *bst) {
     int j = 1;
     int k = S_POW;
     while(k--) {
@@ -29,7 +29,7 @@ void counters(int *to_sort, int *sample, int* prefsums, int number_of_blocks) {
     }
     __syncthreads();
 
-    int j = findIndex(to_sort[gthid]);
+    int j = findIndex(to_sort[gthid], bst);
     atomicAdd(histogram + j, 1);
     __syncthreads();
 
@@ -67,7 +67,7 @@ void prefsum(int* localPrefsums, int* maxPrefSums) {
     shared[0][threadIdx.x] = localPrefsums[thid];
     shared[0][threadIdx.x + 1024] = localPrefsums[thid + 1024];
 
-    __synchthreads();
+    __syncthreads();
 
     bool from = 1;
     bool to = 0;
@@ -118,7 +118,7 @@ void scatter(int *in, int * out,  int *sample, int* prefsums, int number_of_bloc
     __syncthreads();
 
     int e =in[gthid];
-    int j = findIndex(in, gthid);
+    int j = findIndex(e, bst);
 
 
     int local_index= atomicAdd(histogram + j, 1);

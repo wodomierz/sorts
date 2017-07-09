@@ -31,7 +31,9 @@ int *create_search_tree(int *to_sort) {
     return tree;
 }
 
-void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule) {
+void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule, CUfunction prefsumDev,
+CUfunction prefsumDev1
+) {
     int* maxPrefSums;
     //here can be bug if size is big
     int number_of_local_blocks = (size/2 + THREADS_IN_BLOCK -1)/ THREADS_IN_BLOCK;
@@ -46,16 +48,16 @@ void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule) {
 
 //memcpy ?
 
-    CUfunction prefsumDev;
-    manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"), "cannot load function");
-
-    CUfunction prefsumDev1;
-    manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum1"), "cannot load function");
+//    CUfunction prefsumDev;
+//    manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"), "cannot load function");
+//
+//    CUfunction prefsumDev1;
+//    manageResult(cuModuleGetFunction(&prefsumDev1, cuModule, "prefsum1"), "cannot load function");
 
 
     void* args[] = {&blockPrefsums, &maxPrefSums };
-
-    cuLaunchKernel(prefsumDev,x_dim, y_dim, 1,THREADS_IN_BLOCK, 1, 1, 0,0, args, 0);
+    std::cout << "running"<< std::endl;
+    manageResult(cuLaunchKernel(prefsumDev,x_dim, y_dim, 1,THREADS_IN_BLOCK, 1, 1, 0,0, args, 0), "pref2");
     cuCtxSynchronize();
 
 //    cuMemcpyDtoH((void*)maxPrefSums, maxPrevSumDev, (number_of_local_blocks + 1) * sizeof(int));
@@ -64,7 +66,7 @@ void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule) {
     for (int j=1; j <= number_of_local_blocks; ++j) {
         maxPrefSums[j] += maxPrefSums[j-1];
     }
-    cuLaunchKernel(prefsumDev1,x_dim, y_dim, 1,THREADS_IN_BLOCK, 1, 1, 0,0, args, 0);
+    manageResult(cuLaunchKernel(prefsumDev1,x_dim, y_dim, 1,THREADS_IN_BLOCK, 1, 1, 0,0, args, 0), "pref1");
     cuCtxSynchronize();
 
 //    cuMemFree(maxPrevSumDev);
@@ -85,7 +87,7 @@ void sample_rand(int *to_sort, int size) {
 //    CUfunction bitonic_triangle_merge;
 //    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"),
 //                 "cannot load function");
-
+    int c = 3;
     int n;
     int power_n;
     //fit n to power of 2
@@ -124,6 +126,13 @@ void sample_rand(int *to_sort, int size) {
     CUdeviceptr blockPrefsums;
     cuMemAlloc(&blockPrefsums, S_SIZE * numberOfBlocks * sizeof(int));
 
+
+    CUfunction prefsumDev;
+    manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"), "cannot load function");
+
+    CUfunction prefsumDev1;
+    manageResult(cuModuleGetFunction(&prefsumDev1, cuModule, "prefsum1"), "cannot load function");
+
     CUfunction counters;
     manageResult(cuModuleGetFunction(&counters, cuModule, "counters"), "cannot load function");
 
@@ -132,8 +141,8 @@ void sample_rand(int *to_sort, int size) {
     cuCtxSynchronize();
 
 
-    prefsum(blockPrefsums, S_SIZE * numberOfBlocks, cuModule);
-
+    prefsum(blockPrefsums, S_SIZE * numberOfBlocks, cuModule, prefsumDev, prefsumDev1);
+    std::cout << "after prefsum" << std::endl;
 
     CUfunction scatter;
     manageResult(cuModuleGetFunction(&counters, cuModule, "scatter"), "cannot load function");
