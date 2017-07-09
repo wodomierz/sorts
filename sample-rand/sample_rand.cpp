@@ -14,16 +14,15 @@
 #define THREADS_IN_BLOCK 1024
 
 
-
-int* create_search_tree(int* to_sort, int sample_size) {
-    int* sample = new int[sample_size];
-    int* tree = new int[sample_size];
+int *create_search_tree(int *to_sort, int sample_size) {
+    int *sample = new int[sample_size];
+    int *tree = new int[sample_size];
     std::copy(to_sort, to_sort + sample_size, sample);
     std::sort(sample, sample + sample_size);
 
     int iteratr = 0;
     for (int i = 2; i <= sample_size; i *= 2) {
-        for (int j=1; j < i; j+=2) {
+        for (int j = 1; j < i; j += 2) {
             tree[iteratr++] = sample[j * (sample_size / i)];
         }
     }
@@ -32,36 +31,36 @@ int* create_search_tree(int* to_sort, int sample_size) {
 }
 
 
-
-void sample_rand(int * to_sort, int size) {
+void sample_rand(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
     CUcontext cuContext;
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
-    CUmodule cuModule = (CUmodule)0;
-    manageResult(cuModuleLoad(&cuModule, "bitonic/bitonic_sort.ptx"), "cannot load module");
+    CUmodule cuModule = (CUmodule) 0;
+    manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"), "cannot load module");
     CUfunction bitonic_merge;
-    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge" ) , "cannot load function");
+    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"), "cannot load function");
     CUfunction bitonic_triangle_merge;
-    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule,"bitonic_triangle_merge"), "cannot load function");
+    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"),
+                 "cannot load function");
 
     int n;
     int power_n;
     //fit n to power of 2
-    for (n = 1, power_n=0; n < size; n <<= 1, power_n++);
-    int half_size = n/2;
+    for (n = 1, power_n = 0; n < size; n <<= 1, power_n++);
+    int half_size = n / 2;
     int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
     int max_grid_dim_x = 32768;
     int x_dim = numberOfBlocks > max_grid_dim_x ? max_grid_dim_x : numberOfBlocks;
     int y_dim = (numberOfBlocks + x_dim - 1) / x_dim;
     int z_dim = 1;
     if (y_dim > max_grid_dim_x) {
-        z_dim = (y_dim + max_grid_dim_x -1) / max_grid_dim_x;
+        z_dim = (y_dim + max_grid_dim_x - 1) / max_grid_dim_x;
         y_dim = max_grid_dim_x;
     }
 
-    cuMemHostRegister((void*) to_sort, size * sizeof(int), 0);
+    cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
@@ -69,12 +68,26 @@ void sample_rand(int * to_sort, int size) {
     int s_size = 10;
 
 
-    int* s_tree = create_search_tree(to_sort, s_size);
+    int *s_tree = create_search_tree(to_sort, s_size);
+    cuMemHostRegister((void *) s_tree, s_size * sizeof(int), 0);
+    cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
 
+    CUdeviceptr bstPtr;
+    cuMemAlloc(&bstPtr, s_size * sizeof(int));
+    cuMemcpyHtoD(bstPtr, s_tree, s_size * sizeof(int));
+
+    CUdeviceptr blockPrefsums;
+    cuMemAlloc(&blockPrefsums, s_size * sizeof(int));
+
+    CUfunction prefsum;
+    manageResult(cuModuleGetFunction(&prefsum, cuModule, "prefsum"), "cannot load function");
+
+    void *args1[] = {&deviceToSort, &prefsum, &s_size, &size, &blockPrefsums};
+    manageResult(cuLaunchKernel(prefsum, x_dim, y_dim, z_dim, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "running");
 
 
-    cuMemcpyDtoH((void*)to_sort, deviceToSort, size * sizeof(int));
+    cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);

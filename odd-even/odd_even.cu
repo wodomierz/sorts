@@ -25,6 +25,7 @@ void odd_even(int *to_sort) {
 
 	int thid = threadIdx.x;
 	int gthid = x + y * gridDim.x * blockDim.x * 2;
+	//TODO check *2 here
 
 	tab[thid] = to_sort[gthid];
 	tab[thid + 1024] = to_sort[gthid + 1024];

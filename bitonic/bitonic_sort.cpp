@@ -55,10 +55,6 @@ double bitonic_sort(int* to_sort, int size, bool opt) {
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
     CUmodule cuModule = (CUmodule)0;
     manageResult(cuModuleLoad(&cuModule, "bitonic/bitonic_sort.ptx"), "cannot load module");
-    CUfunction bitonic_merge;
-    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge" ) , "cannot load function");
-    CUfunction bitonic_triangle_merge;
-    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule,"bitonic_triangle_merge"), "cannot load function");
 
     int n;
     int power_n;
