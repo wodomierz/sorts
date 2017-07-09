@@ -1,6 +1,8 @@
 #include "bitonic/bitonic_sort.h"
 #include "odd-even/odd_even.h"
 #include "radix/radixsort.h"
+#include "sample-rand/sample_rand.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -224,9 +226,9 @@ void test_correctness() {
 //    testg(bitonic_sort1 ,1024 * 8);
 //    testg(bitonic_sort1 ,1024 * 16);
 //    testg(bitonic_sort1 ,1024 * 32);
-    testg(bitonic_sort1 ,1024 * 1024);
+//    testg(bitonic_sort1 ,1024 * 1024);
 //    testg(bitonic_sort1 ,1024 * 1024 *32);
-    testg(bitonic_sort1 ,512 * 1024 * 1024);
+//    testg(bitonic_sort1 ,512 * 1024 * 1024);
 //    testg(bitonic_sort1 ,2 * 1024 * 1024 *1024);
 //    testg(bitonic_sort1 ,1024 * 1024 * 512);
 //    testg(bitonic_sort ,1024 * 16);
@@ -244,8 +246,8 @@ int main() {
 
 
 //
-    eff_tests();
-//    test_correctness();
+//    eff_tests();
+    test_correctness();
     return 0;
 }
 

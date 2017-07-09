@@ -79,12 +79,12 @@ void sample_rand(int *to_sort, int size) {
     CUcontext cuContext;
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
     CUmodule cuModule = (CUmodule) 0;
-    manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_sort.ptx"), "cannot load module");
-    CUfunction bitonic_merge;
-    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"), "cannot load function");
-    CUfunction bitonic_triangle_merge;
-    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"),
-                 "cannot load function");
+    manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"), "cannot load module");
+//    CUfunction bitonic_merge;
+//    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"), "cannot load function");
+//    CUfunction bitonic_triangle_merge;
+//    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"),
+//                 "cannot load function");
 
     int n;
     int power_n;
@@ -142,7 +142,7 @@ void sample_rand(int *to_sort, int size) {
     manageResult(cuLaunchKernel(scatter, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0), "running");
     cuCtxSynchronize();
 
-    cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
+    cuMemcpyDtoH((void *) to_sort, out, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemFree(out);
