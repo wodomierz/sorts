@@ -2,8 +2,7 @@
 
 extern "C" {
 
-__device__ int findIndex(int *to_sort, int gthid) {
-    int e = to_sort[gthid];
+__device__ int findIndex(int e) {
     int j = 1;
     int k = S_POW;
     while(k--) {
@@ -30,12 +29,13 @@ void counters(int *to_sort, int *sample, int size, int* prefsums, int number_of_
     }
     __syncthreads();
 
-    int j = findIndex(to_sort, gthid);
+    int j = findIndex(to_sort[gthid]);
     atomicAdd(histogram + j, 1);
     __syncthreads();
 
     if (threadId < S_SIZE) {
-        int index = (j * number_of_blocks) + blockIdx.x;
+        //bug?
+        int index = (threadId * number_of_blocks) + blockIdx.x;
         prefsums[index] = histogram[threadId];
     }
 }
@@ -101,7 +101,7 @@ void prefsum(int* localPrefsums, int* maxPrefSums) {
 }
 
 __global__
-void scatter(int *to_sort, int *sample, int size, int* prefsums, int number_of_blocks) {
+void scatter(int *in, int * out,  int *sample, int size, int* prefsums, int number_of_blocks) {
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
 
@@ -117,16 +117,19 @@ void scatter(int *to_sort, int *sample, int size, int* prefsums, int number_of_b
     }
     __syncthreads();
 
-    int j = findIndex(to_sort, gthid);
+    int e =in[gthid];
+    int j = findIndex(in, gthid);
 
 
     int local_index= atomicAdd(histogram + j, 1);
     __syncthreads();
 
-    if (threadId < S_SIZE) {
-        int index = (j * number_of_blocks) + blockIdx.x;
-        prefsums[index] = histogram[threadId];
-    }
+    int indexInPrefsums = (j * number_of_blocks) + blockIdx.x;
+    out[prefsums[indexInPrefsums] + local_index] = e;
+//    if (threadId < S_SIZE) {
+//        int index = (j * number_of_blocks) + blockIdx.x;
+//        prefsums[index] = histogram[threadId];
+//    }
 }
 
 }
