@@ -13,7 +13,7 @@ __device__ int findIndex(int e) {
 }
 
 __global__
-void counters(int *to_sort, int *sample, int size, int* prefsums, int number_of_blocks) {
+void counters(int *to_sort, int *sample, int* prefsums, int number_of_blocks) {
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
 
@@ -101,7 +101,7 @@ void prefsum(int* localPrefsums, int* maxPrefSums) {
 }
 
 __global__
-void scatter(int *in, int * out,  int *sample, int size, int* prefsums, int number_of_blocks) {
+void scatter(int *in, int * out,  int *sample, int* prefsums, int number_of_blocks) {
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
 

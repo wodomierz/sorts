@@ -104,6 +104,11 @@ void sample_rand(int *to_sort, int size) {
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
     cuMemAlloc(&deviceToSort, size * sizeof(int));
+
+    CUdeviceptr out;
+    cuMemAlloc(&out, size * sizeof(int));
+
+
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
 //    int s_size = 1024;
@@ -111,9 +116,6 @@ void sample_rand(int *to_sort, int size) {
 
     int *s_tree = create_search_tree(to_sort);
     cuMemHostRegister((void *) s_tree, S_SIZE* sizeof(int), 0);
-
-    cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
-
 
     CUdeviceptr bstPtr;
     cuMemAlloc(&bstPtr, S_SIZE * sizeof(int));
@@ -125,7 +127,7 @@ void sample_rand(int *to_sort, int size) {
     CUfunction counters;
     manageResult(cuModuleGetFunction(&counters, cuModule, "counters"), "cannot load function");
 
-    void *args1[] = {&deviceToSort, &bstPtr, &size, &blockPrefsums, &numberOfBlocks};
+    void *args1[] = {&deviceToSort, &bstPtr, &blockPrefsums, &numberOfBlocks};
     manageResult(cuLaunchKernel(counters, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "running");
     cuCtxSynchronize();
 
@@ -136,15 +138,22 @@ void sample_rand(int *to_sort, int size) {
     CUfunction scatter;
     manageResult(cuModuleGetFunction(&counters, cuModule, "scatter"), "cannot load function");
 
-    void *args2[] {&deviceToSort, &bstPtr, &blockPrefsums, &numberOfBlocks};
-    manageResult(cuLaunchKernel(scatter, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "running");
+    void *args2[] {&deviceToSort, &out, &bstPtr, &blockPrefsums, &numberOfBlocks};
+    manageResult(cuLaunchKernel(scatter, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0), "running");
     cuCtxSynchronize();
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
+    cuMemFree(out);
+    cuMemFree(blockPrefsums);
+    cuMemFree(bstPtr);
+
+    cuMemHostUnregister(s_tree);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
+
+    delete[] s_tree;
 //    return result;
 
 
