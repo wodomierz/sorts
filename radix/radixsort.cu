@@ -26,16 +26,6 @@ void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
 	bool from = 1;
 	bool to = 0;
 	for (int d = 1; d < 2048; d<<=1) {
-		
-		// if (2*threadIdx.x >= d) {
-		// 	temp1 = shared[2*threadIdx.x - d];
-		// }
-
-		// if(2*threadIdx.x + 1 >= d ){
-		// 	temp2 = shared[2*threadIdx.x + 1 - d];
-		// }
-
-		// __syncthreads();
 		from = !from;
 		to = !to;
 		if (2*threadIdx.x >= d) {
@@ -55,10 +45,10 @@ void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
 		__syncthreads();
 	}
 
-	if(thid < size) out[thid] = shared[to][2*threadIdx.x];
-	if(thid +1 < size) out[thid+1] = shared[to][2*threadIdx.x +1];
+	if (thid < size) out[thid] = shared[to][2*threadIdx.x];
+	if (thid +1 < size) out[thid+1] = shared[to][2*threadIdx.x +1];
 
-	if(2*threadIdx.x +1 == (2048 - 1)) {
+	if (2*threadIdx.x +1 == (2048 - 1)) {
 		prefixSums[blockIdx.x + 1] = shared[to][2*threadIdx.x +1];
 	}
 }
