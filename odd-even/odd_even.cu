@@ -14,7 +14,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 		atomicExch(tab + for_max, min);
 		atomicExch(tab + for_min, max);
 	}
-} ;
+};
 
 __global__
 void odd_even(int *to_sort) {
@@ -24,7 +24,7 @@ void odd_even(int *to_sort) {
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int thid = threadIdx.x;
-	int gthid = x + y * gridDim.x * blockDim.x;
+	int gthid = x + y * gridDim.x * blockDim.x * 2;
 
 	tab[thid] = to_sort[gthid];
 	tab[thid + 1024] = to_sort[gthid + 1024];

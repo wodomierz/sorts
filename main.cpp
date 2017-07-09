@@ -75,16 +75,15 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
 
 
 void cmpSorts(int n, int *initData) {
-    double m1 = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, true); }, initData, n, "odd-even");
-    double m = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, false); }, initData, n, "bitonic");
+    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, true); }, initData, n, "odd-even");
+    double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, false); }, initData, n, "bitonic");
     results1.push_back(m1);
     results.push_back(m);
-
 }
 
 void cmpSorts1(int n, int *initData) {
-    double m1 = cleanTestTime([](int *tab, int size) -> void { radixsort(tab, size); }, initData, n, "radix");
-    double m = cleanTestTime([](int *tab, int size) -> void {  bitonic_sort(tab, size, false); }, initData, n, "bitonic");
+    double m1 = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, true); }, initData, n, "bit");
+    double m = cleanTestTime([](int *tab, int size) -> void {  std::sort(tab, tab + size); }, initData, n, "std");
     results1.push_back(m1);
     results.push_back(m);
 
@@ -108,20 +107,20 @@ void comparesorts(int n) {
         c1[j] = rand();
     }
     loggTitle("rand");
-    cmpSorts(n, c1);
+    cmpSorts1(n, c1);
     // ascending
     for (int j = 0; j < n; ++j) {
         c1[j] = j;
     }
     loggTitle("asc");
-    cmpSorts(n, c1);
+    cmpSorts1(n, c1);
 
     //descending
     for (int j = 0; j < n; ++j) {
         c1[j] = n - j;
     }
     loggTitle("desc");
-    cmpSorts(n, c1);
+    cmpSorts1(n, c1);
 }
 
 
@@ -146,8 +145,8 @@ void eff_tests() {
 //    }
 //    comparesorts(2048);
 
-    for (int i = 0; i <= 3; i ++) {
-        comparesorts(1024 * 1024 * 128);
+    for (int i = 0; i <= 2; i ++) {
+        comparesorts(1024 * 1024 * 512);
     }
 
 
@@ -214,19 +213,21 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
-    odd_even(tab, size, true);
+    bitonic_sort(tab, size, true);
 }
 void test_correctness() {
 //    test01(radix1);
 //    testg(bitonic_sort, 1024);
 //
     testg(bitonic_sort1 ,1024 * 2);
-    testg(bitonic_sort1 ,1024 * 4);
-    testg(bitonic_sort1 ,1024 * 8);
-    testg(bitonic_sort1 ,1024 * 16);
-    testg(bitonic_sort1 ,1024 * 32);
+//    testg(bitonic_sort1 ,1024 * 4);
+//    testg(bitonic_sort1 ,1024 * 8);
+//    testg(bitonic_sort1 ,1024 * 16);
+//    testg(bitonic_sort1 ,1024 * 32);
     testg(bitonic_sort1 ,1024 * 1024);
-    testg(bitonic_sort1 ,1024 * 1024 *32);
+//    testg(bitonic_sort1 ,1024 * 1024 *32);
+    testg(bitonic_sort1 ,512 * 1024 * 1024);
+//    testg(bitonic_sort1 ,2 * 1024 * 1024 *1024);
 //    testg(bitonic_sort1 ,1024 * 1024 * 512);
 //    testg(bitonic_sort ,1024 * 16);
 //    testg(bitonic_sort1 ,1024 * 23 * 512);
