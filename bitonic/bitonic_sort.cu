@@ -85,7 +85,7 @@ void bitonic_merge1(int *to_sort) {
             int wireThid = threadId + ((threadId >> d_power) << d_power);
             int opposite = wireThid + (1 << d_power);
             min_max(tab, wireThid, opposite, 2048);
-            min_max(tab, wireThid + 1024, opposite + 1024, 2048);
+//            min_max(tab, wireThid + 1024, opposite + 1024, 2048);
             __syncthreads();
         }
     }

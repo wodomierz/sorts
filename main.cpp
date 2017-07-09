@@ -75,8 +75,8 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
 
 
 void cmpSorts(int n, int *initData) {
-    double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, false); }, initData, n, "bitonic");
-    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, true); }, initData, n, "odd-even");
+    double m1 = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, true); }, initData, n, "odd-even");
+    double m = cleanTest([](int *tab, int size) -> double { return odd_even(tab, size, false); }, initData, n, "bitonic");
     results1.push_back(m1);
     results.push_back(m);
 
@@ -214,7 +214,7 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
-    bitonic_sort(tab, size, false);
+    odd_even(tab, size, true);
 }
 void test_correctness() {
 //    test01(radix1);
@@ -227,7 +227,7 @@ void test_correctness() {
     testg(bitonic_sort1 ,1024 * 32);
     testg(bitonic_sort1 ,1024 * 1024);
     testg(bitonic_sort1 ,1024 * 1024 *32);
-    testg(bitonic_sort1 ,1024 * 1024 * 512);
+//    testg(bitonic_sort1 ,1024 * 1024 * 512);
 //    testg(bitonic_sort ,1024 * 16);
 //    testg(bitonic_sort1 ,1024 * 23 * 512);
 //    testg(radix1 ,1024 * 1024 * 512);
