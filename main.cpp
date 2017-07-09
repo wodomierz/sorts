@@ -144,10 +144,10 @@ void eff_tests() {
 //        comparesorts(i);
 //         comparesorts(i);
 //    }
-    comparesorts(2048);
+//    comparesorts(2048);
 
     for (int i = 0; i <= 3; i ++) {
-        comparesorts(1024 * 1024 * 32);
+        comparesorts(1024 * 1024 * 128);
     }
 
 
@@ -214,7 +214,7 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
-    bitonic_sort(tab, size, true);
+    bitonic_sort(tab, size, false);
 }
 void test_correctness() {
 //    test01(radix1);
@@ -227,6 +227,7 @@ void test_correctness() {
     testg(bitonic_sort1 ,1024 * 32);
     testg(bitonic_sort1 ,1024 * 1024);
     testg(bitonic_sort1 ,1024 * 1024 *32);
+    testg(bitonic_sort1 ,1024 * 1024 * 512);
 //    testg(bitonic_sort ,1024 * 16);
 //    testg(bitonic_sort1 ,1024 * 23 * 512);
 //    testg(radix1 ,1024 * 1024 * 512);
