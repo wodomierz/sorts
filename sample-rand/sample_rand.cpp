@@ -14,6 +14,7 @@
 //
 #define THREADS_IN_BLOCK 1024
 
+using namespace std;
 
 int *create_search_tree(int *to_sort) {
     int *sample = new int[S_SIZE];
@@ -31,7 +32,7 @@ int *create_search_tree(int *to_sort) {
     return tree;
 }
 
-void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule, CUfunction prefsumDev,
+inline void prefsum(CUdeviceptr blockPrefsums, int size, CUmodule cuModule, CUfunction prefsumDev,
 CUfunction prefsumDev1
 ) {
     int* maxPrefSums;
@@ -41,7 +42,7 @@ CUfunction prefsumDev1
     int max_grid_dim_x = 32768;
     int x_dim = number_of_local_blocks > max_grid_dim_x ? max_grid_dim_x : number_of_local_blocks;
     int y_dim = (number_of_local_blocks + x_dim - 1) / x_dim;
-
+    cout << "pref dziwne "<< x_dim << " " << y_dim<< endl;
     cuMemAllocHost((void**)&maxPrefSums, (number_of_local_blocks + 1) * sizeof(int));
 //    CUdeviceptr maxPrevSumDev;
 //    cuMemAlloc(&maxPrevSumDev, (number_of_local_blocks + 1) * sizeof(int));
@@ -82,7 +83,7 @@ void sample_rand(int *to_sort, int size) {
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
     CUmodule cuModule = (CUmodule) 0;
     manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"), "cannot load module");
-//    CUfunction bitonic_merge;
+//   CUfunction bitonic_merge;
 //    manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"), "cannot load function");
 //    CUfunction bitonic_triangle_merge;
 //    manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"),
@@ -92,16 +93,18 @@ void sample_rand(int *to_sort, int size) {
     int power_n;
     //fit n to power of 2
     for (n = 1, power_n = 0; n < size; n <<= 1, power_n++);
-    int half_size = n / 2;
-    int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
+//    int half_size = n / 2;
+    int numberOfBlocks = (n + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
     int max_grid_dim_x = 32768;
     int x_dim = numberOfBlocks > max_grid_dim_x ? max_grid_dim_x : numberOfBlocks;
     int y_dim = (numberOfBlocks + x_dim - 1) / x_dim;
+    cout << x_dim << " " << y_dim << endl;
 //    int z_dim = 1;
 //    if (y_dim > max_grid_dim_x) {
 //        z_dim = (y_dim + max_grid_dim_x - 1) / max_grid_dim_x;
 //        y_dim = max_grid_dim_x;
 //    }
+
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
@@ -145,7 +148,7 @@ void sample_rand(int *to_sort, int size) {
     std::cout << "after prefsum" << std::endl;
 
     CUfunction scatter;
-    manageResult(cuModuleGetFunction(&counters, cuModule, "scatter"), "cannot load function");
+    manageResult(cuModuleGetFunction(&scatter, cuModule, "scatter"), "cannot load function");
 
     void *args2[] {&deviceToSort, &out, &bstPtr, &blockPrefsums, &numberOfBlocks};
     manageResult(cuLaunchKernel(scatter, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0), "running");

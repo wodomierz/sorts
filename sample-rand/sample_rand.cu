@@ -6,9 +6,9 @@ __device__ int findIndex(int e, int *bst) {
     int j = 1;
     int k = S_POW;
     while(k--) {
-        j = 2*j +(e> bst[j]);
+        j = 2*j + (e> bst[j]);
     }
-    j = j-S_SIZE +1; // bucket index
+    j = j - S_SIZE; // bucket index
     return j;
 }
 
@@ -57,7 +57,7 @@ void prefsum1(int* localPrefsums, int*maxPrefSums) {
 }
 __global__
 void prefsum(int* localPrefsums, int* maxPrefSums) {
-    __shared__ int shared[2][2048];
+    __shared__ int shared[2][2049];
 
     int x = blockIdx.x * blockDim.x*2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -87,13 +87,11 @@ void prefsum(int* localPrefsums, int* maxPrefSums) {
         else {
             shared[to][2*threadIdx.x +1 ] = shared[from][2*threadIdx.x +1];
         }
-
         __syncthreads();
     }
 
     localPrefsums[thid] = shared[to][threadIdx.x];
     localPrefsums[thid+1024] = shared[to][threadIdx.x +1024];
-
     if (2*threadIdx.x +1 == (2048 - 1)) {
         maxPrefSums[blockIdx.x + 1] = shared[to][2*threadIdx.x +1];
     }
