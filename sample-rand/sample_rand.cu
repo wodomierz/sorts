@@ -6,7 +6,7 @@ __device__ int findIndex(int e, int *bst) {
     int j = 1;
     int k = S_POW;
     while(k--) {
-        j = 2*j + (e> bst[j]);
+        j = 2*j + (e> bst[j-1]);
     }
     j = j - S_SIZE; // bucket index
     return j;
@@ -16,7 +16,6 @@ __global__
 void counters(int *to_sort, int *sample, int* prefsums, int number_of_blocks) {
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
-
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int gthid = x + y * gridDim.x * blockDim.x;
@@ -33,11 +32,15 @@ void counters(int *to_sort, int *sample, int* prefsums, int number_of_blocks) {
     atomicAdd(histogram + j, 1);
     __syncthreads();
 
-    if (threadId < S_SIZE) {
+//    if (threadId < S_SIZE) {
         //bug?
-        int index = (threadId * number_of_blocks) + blockIdx.x;
-        prefsums[index] = histogram[threadId];
-    }
+        int index = (j * number_of_blocks) + blockIdx.x;
+//        int index = (threadId * number_of_blocks) + blockIdx.x;
+//        prefsums[index] = histogram[threadId];
+//        prefsums[index] = j;
+//    atomicExch(prefsums + index, j);
+    atomicExch(prefsums + index, histogram[j]);
+//    }
 }
 
 __global__
@@ -123,7 +126,7 @@ void scatter(int *in, int * out,  int *sample, int* prefsums, int number_of_bloc
     __syncthreads();
 
     int indexInPrefsums = (j * number_of_blocks) + blockIdx.x;
-    out[prefsums[indexInPrefsums] + local_index] = e;
+    out[prefsums[indexInPrefsums-1] + local_index] = e;
 //    if (threadId < S_SIZE) {
 //        int index = (j * number_of_blocks) + blockIdx.x;
 //        prefsums[index] = histogram[threadId];

@@ -167,12 +167,17 @@ void testg(func_withtime sort, int n) {
     srand(time(NULL));
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
-        c[j] = rand();
+        c[j] = n-j-1;
+//                rand();
     }
 //    for (int j = 0; j< n; ++j) {
 //        c[j] = c[j]&((1<<31) - 1);
 //    }
     sort(c, n);
+    int bucket_size = n / 512;
+    for (int r = 0; r < n; r += bucket_size) {
+        std::sort(c +  r , c + r + bucket_size);
+    }
 
     bool firsttime = true;
 
@@ -185,11 +190,11 @@ void testg(func_withtime sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test  %d %d %d %d \n",n, c[j], c[j + 1], j);
-//            for (int i = 0 ; i < 32; ++i) {
-//                cout << c[i] << endl;
+            for (int i = 0 ; i < 100; ++i) {
+                cout << c[i] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
-//            }
+            }
 //            cout <<"dupeczka" << endl;
 //            cout << endl << endl;
 //            for (int i = 2048 ; i < 1064; ++i) {
