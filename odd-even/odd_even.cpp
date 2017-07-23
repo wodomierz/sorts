@@ -18,11 +18,14 @@ double run1(CUmodule cuModule,CUdeviceptr deviceToSort, int power, int x_dim, in
     CUfunction odd_even;
     manageResult(cuModuleGetFunction(&odd_even, cuModule, "odd_even"), "");
 
+    //check this one more time
+    std::clock_t start = std::clock();
+
     void* args[1] = {&deviceToSort};
     manageResult(cuLaunchKernel(odd_even, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
     cuCtxSynchronize();
 
-    std::clock_t start = std::clock();
+
     for (int pow__half_batch = 11; pow__half_batch <= power - 1; pow__half_batch++) {
         int half_batch = 1 << pow__half_batch;
         void *args1[3] = {&deviceToSort, &pow__half_batch, &size};
@@ -102,7 +105,7 @@ double odd_even(int *to_sort, int size, bool opt) {
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
     double result ;
-       if (opt)   result  = run1(cuModule, deviceToSort, power, x_dim, y_dim, size);
+       if (opt) result = run1(cuModule, deviceToSort, power, x_dim, y_dim, size);
        else  result  = run(cuModule, deviceToSort, power, x_dim, y_dim, size);
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));

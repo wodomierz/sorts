@@ -174,10 +174,10 @@ void testg(func_withtime sort, int n) {
 //        c[j] = c[j]&((1<<31) - 1);
 //    }
     sort(c, n);
-    int bucket_size = n / 512;
-    for (int r = 0; r < n; r += bucket_size) {
-        std::sort(c +  r , c + r + bucket_size);
-    }
+    int bucket_size = n / 1024;
+//    for (int r = 0; r < n; r += bucket_size) {
+//        std::sort(c +  r , c + r + bucket_size);
+//    }
 
     bool firsttime = true;
 
@@ -227,7 +227,13 @@ void test_correctness() {
 //    test01(radix1);
 //    testg(bitonic_sort, 1024);
 //
-    testg(bitonic_sort1 ,1024 * 2);
+    testg(bitonic_sort1 ,1024 * 8);
+    testg(bitonic_sort1 ,1024 * 16);
+    testg(bitonic_sort1 ,1024 * 32);
+    testg(bitonic_sort1 ,1024 * 64);
+    testg(bitonic_sort1 ,1024 * 512);
+    testg(bitonic_sort1 ,1024 * 1024);
+    testg(bitonic_sort1 ,2*1024 * 1024);
 //    testg(bitonic_sort1 ,1024 * 4);
 //    testg(bitonic_sort1 ,1024 * 8);
 //    testg(bitonic_sort1 ,1024 * 16);
