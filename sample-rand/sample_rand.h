@@ -3,6 +3,9 @@
 //
 
 
+#include <climits>
+#include <cstdio>
+
 #define THREADS_PER_BLOCK 1024
 #define ELEMENTS_PER_THREAD 8
 #define S_SIZE 1024

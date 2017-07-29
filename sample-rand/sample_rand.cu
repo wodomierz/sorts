@@ -15,6 +15,19 @@ void min_max(int *tab, int for_min, int for_max, int size) {
     }
 };
 
+
+__global__
+void chujowy_sort(int * to_sort, int size) {
+    for (int i=1; i< size; ++i) {
+        for (int j=0; j < i; ++j) {
+            min_max(to_sort, j, i, size);
+            __syncthreads();
+        }
+    }
+}
+
+
+
 __global__
 void odd_even(int *to_sort) {
     //TODO you MUST check size

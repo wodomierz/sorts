@@ -189,9 +189,9 @@ void testg(func_withtime sort, int n) {
 //            std::cout << first << endl;
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
-            printf("test  %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = 0 ; i < 100; ++i) {
-                cout << c[i] << endl;
+            printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
+            for (int i = 0; (i+j) < n && i < 30; ++i) {
+                cout << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
             }
@@ -227,13 +227,23 @@ void test_correctness() {
 //    test01(radix1);
 //    testg(bitonic_sort, 1024);
 //
-    testg(bitonic_sort1 ,1024 * 8);
-    testg(bitonic_sort1 ,1024 * 16);
-    testg(bitonic_sort1 ,1024 * 32);
-    testg(bitonic_sort1 ,1024 * 64);
-    testg(bitonic_sort1 ,1024 * 512);
-    testg(bitonic_sort1 ,1024 * 1024);
-    testg(bitonic_sort1 ,2*1024 * 1024);
+//    testg(bitonic_sort1 ,1024 * 8);
+//    testg(bitonic_sort1 ,1024 * 16);
+//    testg(bitonic_sort1 ,1024 * 32);
+//    testg(bitonic_sort1 ,1024 * 64);
+//    testg(bitonic_sort1 ,1024 * 512);
+//    testg(bitonic_sort1 ,1024 * 1024);
+//    testg(bitonic_sort1 ,2*1024 * 1024);
+//    testg(bitonic_sort1 ,2*1024 * 1024);
+    testg(bitonic_sort1 ,2*1024);
+    testg(bitonic_sort1 ,4  * 1024);
+    testg(bitonic_sort1 ,8  * 1024);
+    testg(bitonic_sort1 ,16  * 1024);
+    testg(bitonic_sort1 ,32  * 1024);
+    testg(bitonic_sort1 ,3  * 1024);
+    testg(bitonic_sort1 ,8  * 1024);
+    testg(bitonic_sort1 ,9  * 1024);
+//    testg(bitonic_sort1 ,32*1024 * 1024);
 //    testg(bitonic_sort1 ,1024 * 4);
 //    testg(bitonic_sort1 ,1024 * 8);
 //    testg(bitonic_sort1 ,1024 * 16);

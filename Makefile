@@ -25,9 +25,9 @@ CFLAGS += $(COMMONFLAGS)
 
 
 
-CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx odd-even/odd_even_1.ptx radix/radixsort.ptx \
+CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx radix/radixsort.ptx \
 sample-rand/sample_rand.ptx
-OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o odd-even/odd_even_1.cpp.o \
+OBJS =  main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o \
 radix/radixsort.cpp.o sample-rand/sample_rand.cpp.o
 
 TARGET = solution.x
@@ -46,8 +46,11 @@ LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 $(TARGET): prepare $(OBJS) $(CUDA_OBJS)
 	$(LINKLINE)
 
+
 clean:
-	rm -rf $(TARGET) *.o *.ptx
+	rm -rf -r $(TARGET) *.o *.ptx
+	find . -type f -name '*.o' -delete
+	find . -type f -name '*.ptx' -delete
 
 prepare:
 	rm -rf $(CCPATH);\
