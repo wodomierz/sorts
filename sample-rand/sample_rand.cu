@@ -89,6 +89,8 @@ void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks) {
     __shared__ int histogram[S_SIZE];
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+
     int gthid = x + y * gridDim.x * blockDim.x;
 
     int threadId = threadIdx.x;
@@ -107,7 +109,7 @@ void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks) {
 
     if (threadId < S_SIZE) {
         //bug?
-        int index = (threadId * number_of_blocks) + blockIdx.x;
+        int index = (threadId * number_of_blocks) + blockId;
         atomicExch(prefsums + index, histogram[threadId]);
     }
 }
@@ -118,8 +120,9 @@ void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int* s
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     int thid = x + y * gridDim.x * blockDim.x * 2;
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-    int global_offset = maxPrefSums[blockIdx.x];
+    int global_offset = maxPrefSums[blockId];
 
     atomicAdd(localPrefsums + thid, global_offset);
     atomicAdd(localPrefsums + thid + THREADS_PER_BLOCK, global_offset);
@@ -142,6 +145,8 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
 
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
     int thid = x + y * gridDim.x * blockDim.x * 2;
 
@@ -172,7 +177,7 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
     localPrefsums[thid] = shared[to][threadIdx.x];
     localPrefsums[thid + T] = shared[to][threadIdx.x + T];
     if (2 * threadIdx.x + 1 == (T*2 - 1)) {
-        maxPrefSums[blockIdx.x + 1] = shared[to][2 * threadIdx.x + 1];
+        maxPrefSums[blockId + 1] = shared[to][2 * threadIdx.x + 1];
     }
 
 }
