@@ -22,5 +22,9 @@ void print_tab(int* tab, int size, int prints, const char* title, Printer printe
 void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from = 0, const char* title = "", Printer printer = simplePrint, Filter filter = everything);
 #define manageResult(error_code, comment) (manageError((error_code), (comment), __LINE__, __FILE__))
 
+int ceil_div(int, int);
+CUdeviceptr cuAllocInts(int size);
+int* cuAllocHostInts(int size);
+CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset);
 #endif //SORTS_UTILS_H
 

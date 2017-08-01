@@ -38,3 +38,24 @@ void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from, const char*
     cuCtxSynchronize();
     cuMemFreeHost(tab);
 }
+
+int ceil_div(int divident, int divisor) {
+    return 1+ (divident-1) / divisor;
+}
+
+
+CUdeviceptr cuAllocInts(int size) {
+    CUdeviceptr result;
+    cuMemAlloc(&result, sizeof(int)* size);
+    return result;
+}
+
+int* cuAllocHostInts(int size) {
+    int* result;
+    cuMemAllocHost((void**) &result, sizeof(int)* size);
+    return result;
+}
+
+CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset) {
+    return ptr + offset * sizeof(int);
+}
