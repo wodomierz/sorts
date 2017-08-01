@@ -2,11 +2,39 @@
 // Created by Miron Ficak on 28/06/2017.
 //
 
+#include <cassert>
 #include "utils.h"
+#include <algorithm>
 
 void manageError(CUresult res, std::string message, int line, const char* file) {
     if (res != CUDA_SUCCESS) {
         printf("%s , error nr: %d file : %s line: %d\n", message.c_str(), res, file, line);
         exit(1);
     }
+}
+
+
+void print_tab(int* tab, int size, int prints, const char* title, Printer printer, Filter filter) {
+    PRINT1("\n");
+    PRINT1("%s\n", title);
+    for (int i=0; i  < size && i < prints; ++i) {
+        if (filter(i, tab)) {
+            printer(i, tab);
+        }
+    }
+    PRINT1("\n");
+}
+
+void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from, const char* title, Printer printer, Filter filter) {
+    int * tab;
+
+    prints = std::min(size, prints);
+    cuCtxSynchronize();
+    cuMemAllocHost((void**) &tab, sizeof(int) * prints);
+
+    cuMemcpyDtoH((void*) tab, dtab, sizeof(int) * prints);
+
+    print_tab(tab + from, prints - from, prints,title, printer);
+    cuCtxSynchronize();
+    cuMemFreeHost(tab);
 }

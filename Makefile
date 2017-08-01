@@ -15,7 +15,7 @@ LIB_CUDA := -lcuda
 
 
 # Options
-NVCCOPTIONS = -arch sm_20 -ptx
+NVCCOPTIONS = -arch sm_30 -ptx
 
 # Common flags
 COMMONFLAGS += $(INCLUDES)

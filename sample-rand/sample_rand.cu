@@ -31,7 +31,7 @@ void chujowy_sort(int * to_sort, int size) {
 __global__
 void odd_even(int *to_sort) {
     //TODO you MUST check size
-    __shared__ int tab[2048];
+    __shared__ int tab[T*2];
 
     int x = blockIdx.x * blockDim.x *2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -41,7 +41,7 @@ void odd_even(int *to_sort) {
     //TODO check *2 here
 
     tab[thid] = to_sort[gthid];
-    tab[thid + 1024] = to_sort[gthid + 1024];
+    tab[thid + T] = to_sort[gthid + T];
     __syncthreads();
 
     for (int pow__half_batch = 0, half_batch = 1;
@@ -50,7 +50,7 @@ void odd_even(int *to_sort) {
 
         int wireThid = thid + ((thid >> pow__half_batch) << pow__half_batch);
         int opposite = wireThid + half_batch;
-        min_max(tab, wireThid, opposite, 2048);
+        min_max(tab, wireThid, opposite, T*2);
         __syncthreads();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
 
@@ -60,7 +60,7 @@ void odd_even(int *to_sort) {
 
             int wire_id = thid + (((thid>>d_power) + ((thid / period) << 1) + 1) << d_power);
             int opposite = wire_id + d;
-            min_max(tab, wire_id, opposite, 2048);
+            min_max(tab, wire_id, opposite, T*2);
 
             __syncthreads();
         }
@@ -68,7 +68,7 @@ void odd_even(int *to_sort) {
     }
 
     to_sort[gthid] = tab[thid];
-    to_sort[gthid + 1024] = tab[thid + 1024];
+    to_sort[gthid + T] = tab[thid + T];
 
 }
 
@@ -108,17 +108,6 @@ void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks) {
     if (threadId < S_SIZE) {
         //bug?
         int index = (threadId * number_of_blocks) + blockIdx.x;
-
-//        __syncthreads();
-//        atomicAdd(histogram + threadId, 1);
-//        __syncthreads();
-//        prefsums[gthid] = j;
-//        __syncthreads();
-//        int index = (threadId * number_of_blocks) + blockIdx.x;
-//        prefsums[index] = histogram[threadId];
-//        prefsums[index] = j;
-
-
         atomicExch(prefsums + index, histogram[threadId]);
     }
 }
@@ -133,7 +122,7 @@ void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int* s
     int global_offset = maxPrefSums[blockIdx.x];
 
     atomicAdd(localPrefsums + thid, global_offset);
-    atomicAdd(localPrefsums + thid + 1024, global_offset);
+    atomicAdd(localPrefsums + thid + THREADS_PER_BLOCK, global_offset);
 
     //czy ta atomiczność i synchronizacja są w ogóle potrzebne?
     __syncthreads();
@@ -141,16 +130,15 @@ void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int* s
         atomicExch(sample_offsets + thid/number_of_blocks + 1, localPrefsums[thid]);
     }
     __syncthreads();
-    if ((thid + 1024) % number_of_blocks == number_of_blocks - 1) {
-        atomicExch(sample_offsets + (thid+ 1024)/number_of_blocks + 1, localPrefsums[thid + 1024]);
+    if ((thid + T) % number_of_blocks == number_of_blocks - 1) {
+        atomicExch(sample_offsets + (thid+ T)/number_of_blocks + 1, localPrefsums[thid + T]);
     }
 
-//    __synchthreads();
 
 }
 __global__
 void prefsum(int *localPrefsums, int *maxPrefSums) {
-    __shared__ int shared[2][2049];
+    __shared__ int shared[2][T*2 + 1];
 
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -158,13 +146,13 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
     int thid = x + y * gridDim.x * blockDim.x * 2;
 
     shared[0][threadIdx.x] = localPrefsums[thid];
-    shared[0][threadIdx.x + 1024] = localPrefsums[thid + 1024];
+    shared[0][threadIdx.x + T] = localPrefsums[thid + T];
 
     __syncthreads();
 
     bool from = 1;
     bool to = 0;
-    for (int d = 1; d < 2048; d <<= 1) {
+    for (int d = 1; d < T*2; d <<= 1) {
         from = !from;
         to = !to;
         if (2 * threadIdx.x >= d) {
@@ -182,8 +170,8 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
     }
 
     localPrefsums[thid] = shared[to][threadIdx.x];
-    localPrefsums[thid + 1024] = shared[to][threadIdx.x + 1024];
-    if (2 * threadIdx.x + 1 == (2048 - 1)) {
+    localPrefsums[thid + T] = shared[to][threadIdx.x + T];
+    if (2 * threadIdx.x + 1 == (T*2 - 1)) {
         maxPrefSums[blockIdx.x + 1] = shared[to][2 * threadIdx.x + 1];
     }
 
@@ -196,6 +184,9 @@ void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks
 
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+
     int gthid = x + y * gridDim.x * blockDim.x;
 
     int threadId = threadIdx.x;
@@ -213,13 +204,13 @@ void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks
     int local_index = atomicAdd(histogram + j, 1);
     __syncthreads();
 
-    int indexInPrefsums = (j * number_of_blocks) + blockIdx.x;
-    out[prefsums[indexInPrefsums - 1] + local_index] = e;
+    int indexInPrefsums = (j * number_of_blocks) + blockId;
+    int offset = 0;
+    if (indexInPrefsums > 0 ) {
+        offset = prefsums[indexInPrefsums -1];
+    }
+    out[offset + local_index] = e;
 
-//    if (threadId < S_SIZE) {
-//        int index = (j * number_of_blocks) + blockIdx.x;
-//        prefsums[index] = histogram[threadId];
-//    }
 }
 
 }

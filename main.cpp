@@ -182,7 +182,7 @@ void testg(func_withtime sort, int n) {
     bool firsttime = true;
 
     for (int j = 0; j < (n - 1); ++j) {
-        if (c[j] > c[j + 1]) {
+        if (c[j] >= c[j + 1]) {
 
 
 //            std::bitset<32> first(c[j]);
@@ -190,8 +190,8 @@ void testg(func_withtime sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = 0; (i+j) < n && i < 30; ++i) {
-                cout << c[i + j] << endl;
+            for (int i = -2; (i+j) < n && i < 200; ++i) {
+                cout << (i+j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
             }
@@ -205,7 +205,7 @@ void testg(func_withtime sort, int n) {
             printf("\n");
         }
 //        if (!firsttime)
-            assert(c[j] <= c[j + 1]);
+            assert(c[j] < c[j + 1]);
         if (c[j] > c[j + 1]) {firsttime = false;}
     }
     printf("test %d ok\n",n);
@@ -224,43 +224,7 @@ double bitonic_sort1(int* tab, int size) {
     sample_rand(tab, size);
 }
 void test_correctness() {
-//    test01(radix1);
-//    testg(bitonic_sort, 1024);
-//
-//    testg(bitonic_sort1 ,1024 * 8);
-//    testg(bitonic_sort1 ,1024 * 16);
-//    testg(bitonic_sort1 ,1024 * 32);
-//    testg(bitonic_sort1 ,1024 * 64);
-//    testg(bitonic_sort1 ,1024 * 512);
-//    testg(bitonic_sort1 ,1024 * 1024);
-//    testg(bitonic_sort1 ,2*1024 * 1024);
-//    testg(bitonic_sort1 ,2*1024 * 1024);
-    testg(bitonic_sort1 ,2*1024);
-    testg(bitonic_sort1 ,4  * 1024);
-    testg(bitonic_sort1 ,8  * 1024);
-    testg(bitonic_sort1 ,16  * 1024);
-    testg(bitonic_sort1 ,32  * 1024);
-    testg(bitonic_sort1 ,3  * 1024);
-    testg(bitonic_sort1 ,8  * 1024);
-    testg(bitonic_sort1 ,9  * 1024);
-//    testg(bitonic_sort1 ,32*1024 * 1024);
-//    testg(bitonic_sort1 ,1024 * 4);
-//    testg(bitonic_sort1 ,1024 * 8);
-//    testg(bitonic_sort1 ,1024 * 16);
-//    testg(bitonic_sort1 ,1024 * 32);
-//    testg(bitonic_sort1 ,1024 * 1024);
-//    testg(bitonic_sort1 ,1024 * 1024 *32);
-//    testg(bitonic_sort1 ,512 * 1024 * 1024);
-//    testg(bitonic_sort1 ,2 * 1024 * 1024 *1024);
-//    testg(bitonic_sort1 ,1024 * 1024 * 512);
-//    testg(bitonic_sort ,1024 * 16);
-//    testg(bitonic_sort1 ,1024 * 23 * 512);
-//    testg(radix1 ,1024 * 1024 * 512);
-//
-//    testg(radix1 ,10899);
-//    testg(radix1 ,788068);
-//    testg(radix1 ,607483);
-//    test_big(radix1);
+    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*4);
 }
 
 int main() {

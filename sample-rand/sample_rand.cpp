@@ -10,17 +10,35 @@
 #include "../utils/utils.h"
 #include <algorithm>
 #include <assert.h>
-
-#define THREADS_IN_BLOCK 1024
-
-
-//#define PRINT(...) fprintf(stderr, ##__VA_ARGS__)
-
-#define PRINT(...) {}
-#define PRINT1(...) fprintf(stderr, ##__VA_ARGS__)
+#include <cuda_runtime_api.h>
 
 using namespace std;
 
+class PrefsumMemory {
+public:
+    int *batchSums;
+    int size;
+    int x_dim;
+    int y_dim;
+    int number_of_prefsum_blocks;
+
+    void clean();
+
+    PrefsumMemory(int);
+
+};
+
+PrefsumMemory::PrefsumMemory(int size) : size(size) {
+    //here can be bug if size is big
+    number_of_prefsum_blocks = (size / 2 + T - 1) / T;
+    x_dim = number_of_prefsum_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_prefsum_blocks;
+    y_dim = (number_of_prefsum_blocks + x_dim - 1) / x_dim;
+    cuMemAllocHost((void **) &batchSums, (number_of_prefsum_blocks + 1) * sizeof(int));
+}
+
+void PrefsumMemory::clean() {
+    cuMemFreeHost(batchSums);
+}
 
 
 class Memory {
@@ -35,12 +53,17 @@ public:
     CUdeviceptr out;
     CUdeviceptr bstPtr;
 
+
+    int prefsumSize();
+
     void moveResult() {
         cuMemcpy(deviceToSort, out, sizeof(int) * size);
         cuMemsetD32(out, 0, size);
     }
 
 public:
+    void localClean();
+
     void clean();
 
     Memory(int);
@@ -62,11 +85,16 @@ public:
 
     CUfunction chujowy_sortDev;
 
-
     Device();
 
+    void localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory);
+
+    void prefsumOfBatchSums(PrefsumMemory &prefsumMemory);
+
+    void globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory);
 
     void chujowy(Memory &memory);
+
     void scatter(Memory &memory);
 
     void counters(Memory &memory);
@@ -77,15 +105,16 @@ public:
 
 Memory::Memory(int size) : size(size), sample_offsets() {
 
-    number_of_blocks = (size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
+    number_of_blocks = (size + T - 1) / T;
     x_dim = number_of_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_blocks;
     y_dim = (number_of_blocks + x_dim - 1) / x_dim;
 
+    sample_offsets = 0;
     cuMemAllocHost((void **) &sample_offsets, sizeof(int) * (S_SIZE + 1));
     sample_offsets[0] = 0;
     cuMemAlloc(&bstPtr, S_SIZE * sizeof(int));
-    cuMemAlloc(&blockPrefsums, S_SIZE * number_of_blocks * sizeof(int));
-    cuMemsetD32(blockPrefsums, 0, S_SIZE * number_of_blocks);
+    cuMemAlloc(&blockPrefsums, prefsumSize() * sizeof(int));
+    cuMemsetD32(blockPrefsums, 0, prefsumSize());
 
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemAlloc(&out, size * sizeof(int));
@@ -103,38 +132,34 @@ void Memory::clean() {
 }
 
 Memory::Memory(Memory &memory, int sample_nr) : Memory(memory) {
-
-//    PRINT( "he size %d ?\n", size);
     deviceToSort = deviceToSort + sample_offsets[sample_nr] * sizeof(int);
-    out = out + sample_offsets[sample_nr];
-//    PRINT( "he?\n");
+    out = out + sample_offsets[sample_nr] * sizeof(int);
     size = sample_offsets[sample_nr + 1] - sample_offsets[sample_nr];
-//    PRINT( "samp_offsets %d %d %d?\n", sample_nr, sample_offsets[sample_nr], sample_offsets[sample_nr + 1]);
     assert(size >= 0);
-    number_of_blocks = (size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
+    number_of_blocks = (size + T - 1) / T;
     x_dim = number_of_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_blocks;
-
-
     //wydajniej
     if (size > M) {
         cuMemAllocHost((void **) &sample_offsets, sizeof(int) * (S_SIZE + 1));
+        sample_offsets[0] = 0;
     }
-    sample_offsets[0] = 0;
-
     y_dim = x_dim == 0 ? x_dim : (number_of_blocks + x_dim - 1) / x_dim;
+}
+
+int Memory::prefsumSize() {
+    return number_of_blocks * S_SIZE;
+}
+
+void Memory::localClean() {
+    if (size > M) {
+        cuMemFreeHost(sample_offsets);
+    }
 
 }
 
 void fprintfMem(Memory &mem) {
-    int * host;
-//    cuMemAllocHost((void**)&host, mem.size* sizeof(int));
-//    cuMemcpyDtoH(host, mem.deviceToSort, mem.size * sizeof(int));
-//    PRINT( "\nMEM\n");
-//    for (int i=0; i< 64 && i < mem.size; ++i) {
-//        PRINT( "%d ",host[i]);
-//    }
-//    PRINT( "\n");
-//    cuMemFreeHost(host);
+    PRINT1("\nMEM %d\n", mem.size);
+    print_Devtab(mem.deviceToSort, mem.size, 64);
 }
 
 Device::Device() {
@@ -155,37 +180,61 @@ Device::Device() {
 
 void Device::scatter(Memory &memory) {
     void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &memory.number_of_blocks};
-    manageResult(cuLaunchKernel(scatterCU, memory.x_dim, memory.y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),
+    manageResult(cuLaunchKernel(scatterCU, memory.x_dim, memory.y_dim, 1, T, 1, 1, 0, 0, args2, 0),
                  "running");
     cuCtxSynchronize();
 }
 
 void Device::counters(Memory &memory) {
+//    if (memory.size == 128) {
+//        PRINT1("x %d y %d size %d blocks %d  threads %d", memory.x_dim, memory.y_dim, memory.size, memory.number_of_blocks, T);
+//    }
     void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.number_of_blocks};
-    manageResult(cuLaunchKernel(countersCU, memory.x_dim, memory.y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),
+    manageResult(cuLaunchKernel(countersCU, memory.x_dim, memory.y_dim, 1, T, 1, 1, 0, 0, args1, 0),
                  "running");
     cuCtxSynchronize();
 }
 
 void Device::odd_even(Memory &memory) {
     void *args[1] = {&memory.deviceToSort};
-    manageResult(cuLaunchKernel(cuOdeven, memory.x_dim, memory.y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),
+    manageResult(cuLaunchKernel(cuOdeven, memory.size / 2, 1, 1, M / 2, 1, 1, 0, 0, args, 0),
                  "running");
     cuCtxSynchronize();
 
 }
 
 void Device::chujowy(Memory &memory) {
+    assertPrintable([memory]{PRINT1("%d %d\n", memory.size, M);}, memory.size == 4);
     void *args[2] = {&memory.deviceToSort, &memory.size};
     manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                  "running");
     cuCtxSynchronize();
 }
 
+void Device::localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
+    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums};
+    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.x_dim, prefsumMemory.y_dim, 1, T, 1, 1, 0, 0, args, 0),
+                 "pref");
+    cuCtxSynchronize();
+}
+
+void Device::globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
+    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.number_of_blocks, &memory.sample_offsets};
+    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.x_dim, prefsumMemory.y_dim, 1, T, 1, 1, 0, 0, args, 0),
+                 "pref1");
+    cuCtxSynchronize();
+}
+
+void Device::prefsumOfBatchSums(PrefsumMemory &prefsumMemory) {
+    //to jest kurwa wolne
+    prefsumMemory.batchSums[0] = 0;
+    for (int j = 1; j <= prefsumMemory.number_of_prefsum_blocks; ++j) {
+        prefsumMemory.batchSums[j] += prefsumMemory.batchSums[j - 1];
+    }
+}
+
 void create_search_tree(Memory &memory) {
-//    if (memory.size < 5000) {
-    PRINT( "\nBEFSEARCH\n");
-//    }
+    //WORKS ONLY IF memory.size > S_SIZE
     int *tree;
     cuMemAllocHost((void **) &tree, S_SIZE * sizeof(int));
     int *sample;
@@ -193,11 +242,12 @@ void create_search_tree(Memory &memory) {
     int *to_sort;
     cuMemAllocHost((void **) &to_sort, memory.size * sizeof(int));
     cuMemcpyDtoH(to_sort, memory.deviceToSort, memory.size * sizeof(int));
-//    std::copy(to_sort, to_sort + S_SIZE, sample);
     int delta = memory.size / S_SIZE;
 
+    std::sort(to_sort, to_sort + memory.size);
+
     for (int i = (delta - 1); i < memory.size; i += delta) {
-        sample[i / delta] = to_sort[memory.size - i - 1];
+        sample[i / delta] = to_sort[i];
     }
 
     std::sort(sample, sample + S_SIZE);
@@ -207,207 +257,113 @@ void create_search_tree(Memory &memory) {
             tree[iteratr++] = sample[j * (S_SIZE / i) - 1];
         }
     }
-    if (memory.size < 10000) {
-        for (int i = 0; i < 64; i++) {
-            PRINT( "%d ", to_sort[i]);
-        }
-        PRINT( "\n\n\n");
-
-        for (int i = 0; i < 64; ++i) {
-            PRINT( "%d ", sample[i]);
-        }
-        PRINT( "\n\n\n");
-//
-        for (int i = 0; i < 64; ++i) {
-            PRINT( "%d ", tree[i]);
-        }
-        PRINT( "\n");
-//        assert(false);
-    }
-
-
+    tree[S_SIZE - 1] = 0;
     cuMemcpyHtoD(memory.bstPtr, tree, S_SIZE * sizeof(int));
     cuMemFreeHost(tree);
     cuMemFreeHost(sample);
-//    if (memory.size < 5000) {
-    PRINT( "SFTER\n");
-//    }
 }
 
 inline void prefsum(Memory &memory, Device &device) {
-    int size = memory.number_of_blocks * S_SIZE;
-    int *maxPrefSums;
-    //here can be bug if size is big
-    int number_of_local_blocks = (size / 2 + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
-
-    int x_dim = number_of_local_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_local_blocks;
-    int y_dim = (number_of_local_blocks + x_dim - 1) / x_dim;
-
-//    cout << "pref dziwne "<< x_dim << " " << y_dim<< endl;
-    cuMemAllocHost((void **) &maxPrefSums, (number_of_local_blocks + 1) * sizeof(int));
-
-    int *copy;
-    cuMemAllocHost((void **) &copy, (64) * sizeof(int));
-    cuMemcpyDtoH(copy, (memory.blockPrefsums + 4096 * 2), 64 * sizeof(int));
-
-    for (int i = 0; i < 64; ++i) {
-//        cout <<"copy befz "<< copy[i] <<endl;
-    }
-
-    void *args[] = {&memory.blockPrefsums, &maxPrefSums};
-//    std::cout << "running" << std::endl;
-    manageResult(cuLaunchKernel(device.prefsumDev, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0), "pref2");
-    cuCtxSynchronize();
-
-    maxPrefSums[0] = 0;
-
-    cuMemcpyDtoH(copy, memory.blockPrefsums, 64 * sizeof(int));
-
-//    cout << "after"<< endl;
-//    for (int i = 0 ; i < 64; ++i) {
-//        cout << copy[i] <<" ";
-//    }
-//    cout << endl;
-
-//    for (int j=0; j <= number_of_local_blocks; ++j) {
-//        cout<<"ps " << maxPrefSums[j] << endl;
-//    }
-
-
-    for (int j = 1; j <= number_of_local_blocks; ++j) {
-        maxPrefSums[j] += maxPrefSums[j - 1];
-    }
-
-    void *args1[] = {&memory.blockPrefsums, &maxPrefSums, &memory.number_of_blocks, &memory.sample_offsets};
-
-    manageResult(cuLaunchKernel(device.prefsumDev1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0), "pref1");
-    cuCtxSynchronize();
-
-    cuMemcpyDtoH(copy, memory.blockPrefsums, 2048 * sizeof(int));
-
-//    cout << "copy"<< endl;
-//    for (int j=0; j < 64; ++j) {
-//        cout <<copy[j] <<" ";
-//    }
-//    cout << endl;
-//    for (int j=0; j< memory.number_of_blocks; ++j) {
-//        cout<< memory.sample_offsets[j]<< " ";
-//    }
-//    cout << endl;
-
-    cuMemFreeHost(maxPrefSums);
-//    exit(1);
+    PrefsumMemory prefsumMemory(memory.prefsumSize());
+    device.localPrefSums(memory, prefsumMemory);
+    device.prefsumOfBatchSums(prefsumMemory);
+    device.globalPrefSums(memory, prefsumMemory);
+    prefsumMemory.clean();
 }
 
-int counter = 0;
+//int counter = 0;
 
 void sample_rand(Device &device, Memory &memory) {
-    assert(counter++ < 1028);
-//    PRINT( "search?\n");
+//    if (memory.size == 128) {
+//        print_Devtab(memory.deviceToSort, memory.size, memory.size, 0, "BEFORE");
+//    }
     create_search_tree(memory);
-//    PRINT( "counters?\n");
+
+//    if (memory.size == 128) {
+//        print_Devtab(memory.blockPrefsums, memory.prefsumSize(), memory.size, 0, "COUNTERS BEF");
+//    }
     device.counters(memory);
-//    PRINT( "prefsum?\n");
+    if (memory.size == 128) {
+//        print_Devtab(memory.blockPrefsums, memory.prefsumSize(), memory.size, 0, "COUNTERS");
+    }
     prefsum(memory, device);
-//    PRINT( "scatterr?\n");
+    if (memory.size == 128) {
+//        print_Devtab(memory.blockPrefsums, memory.prefsumSize(), memory.size, 0, "PREFSUMS");
+    }
     device.scatter(memory);
-//    PRINT( "no elo\n");
     memory.moveResult();
-    bool all_too_small = true;
+
+    if (memory.size == 128) {
+//        print_Devtab(memory.deviceToSort, memory.size, memory.size, 0, "SCATTER");
+    }
+
     // could be more efficient
-    int sizebef = memory.size;
-    PRINT( "father %d\n", sizebef);
+//    PRINT1("father %d\n", memory.size);
     for (int i = 0; i < S_SIZE; ++i) {
         int offset = memory.sample_offsets[i];
-//        PRINT( "offset %d\n", offset);
+//        PRINT1( "o %d f %d\n", offset, memory.size);
         int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
+//        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.size);
         if (size > 0) {
-            if (memory.size > 4000 && memory.size < 5000) {
-                PRINT( "%d ", i);
-            }
-            if (memory.size > 5000) {
-//                PRINT( "\nBIG %d\n", i);
-            }
             Memory mem(memory, i);
-
-            assert(memory.size == sizebef);
-            if (mem.size == memory.size) {
-                PRINT( "%d %d\n", i, memory.sample_offsets[i]);
-//                int *bst;
-//                cuMemAllocHost((void **) &bst, mem.size * sizeof(int));
-//                cuMemcpyDtoH(bst, memory.bstPtr, S_SIZE * sizeof(int));
-//                for (int i=1000 ; i< 1024; ++i) {
-//                    PRINT( "%d ", bst[i]);
-//                }
-//                PRINT( "\n");
-//                int *to_sort;
-//                cuMemAllocHost((void **) &to_sort, mem.size * sizeof(int));
-//                cuMemcpyDtoH(to_sort, mem.deviceToSort, mem.size * sizeof(int));
-//                for (int i=0 ; i< 64; ++i) {
-//                    PRINT( "%d ", to_sort[i]);
-//                }
-                PRINT( "\n");
-                assert(false);
-            }
-//            PRINT( "herez? %d %d %d\n",i, memory.size, mem.size);
+            assertPrintable(([i, memory, mem] {
+                PRINT1("%d %d %d %d %d\n",
+                       i,
+                       memory.sample_offsets[i],
+                       memory.sample_offsets[i + 1],
+                       memory.size,
+                       mem.size);
+            }),
+                            memory.size != mem.size);
             //could be more efficient
             if (mem.size > M) {
-
-                all_too_small = false;
                 sample_rand(device, mem);
             } else {
-//                PRINT( "bef\n");
-                fprintfMem(mem);
                 device.chujowy(mem);
-                fprintfMem(mem);
-//                device.odd_even(mem);
             }
             if (memory.size > 5000 && mem.size == 1) {
-                int *bst;
-                cuMemAllocHost((void **) &bst, S_SIZE * memory.number_of_blocks * sizeof(int));
-                cuMemcpyDtoH(bst, memory.blockPrefsums, S_SIZE * memory.number_of_blocks * sizeof(int));
-                PRINT1( "\n");
-                for (int i = 1; i < memory.size; ++i) {
-                    if (bst[i] > bst[i - 1]) {
-                        PRINT1( "(%d %d) ", i, bst[i]);
-                    }
-                }
-                int *bst1;
-                cuMemAllocHost((void **) &bst1, S_SIZE * sizeof(int));
-                cuMemcpyDtoH(bst1, memory.bstPtr, S_SIZE * sizeof(int));
-                PRINT1( "\n");
-                for (int i = 0; i < S_SIZE; ++i) {
-                    if (bst1[i] < 30) {
-                        PRINT1( "b(%d %d) ", i, bst1[i]);
-                    }
-                }
-                PRINT1( "\n");
-
-
-                PRINT1( "\nWAT? %d %d\n", i, memory.sample_offsets[i + 1]);
+                print_Devtab(
+                        memory.blockPrefsums,
+                        memory.prefsumSize(),
+                        memory.prefsumSize(),
+                        1,
+                        "PREFSUM JUMPS",
+                        indexedPrint,
+                        [](int i, int *tab) -> bool { return (tab[i] > tab[i - 1]); }
+                );
+                print_Devtab(
+                        memory.bstPtr,
+                        S_SIZE,
+                        S_SIZE,
+                        1,
+                        "BST",
+                        indexedPrint
+                );
+                print_Devtab(memory.deviceToSort, memory.size, 512);
+                PRINT1("\nWAT? %d %d %d %d\n", i, memory.size, memory.sample_offsets[i], memory.sample_offsets[i + 1]);
                 assert(false);
             }
         }
 
     }
-    if (memory.size > M) {
-        cuMemFreeHost(memory.sample_offsets);
-        if (memory.size < 5000) PRINT( "TUTAJ?");
-    }
-    if (all_too_small) return;
+    memory.localClean();
 }
 
 
 void sample_rand(int *to_sort, int size) {
+    int cudaVersion;
+    cuDriverGetVersion(&cudaVersion);
+    PRINT1("running version %d\n", cudaVersion);
+
     Device device;
     Memory memory(size);
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
-    PRINT("beforedsa\n");
+    PRINT1("beforedsa %d\n", size);
     sample_rand(device, memory);
-    PRINT( "after\n");
+    PRINT("after\n");
 
     cuMemcpyDtoH((void *) to_sort, memory.deviceToSort, size * sizeof(int));
 

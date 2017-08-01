@@ -6,15 +6,17 @@
 #include <climits>
 #include <cstdio>
 
-#define THREADS_PER_BLOCK 1024
 #define ELEMENTS_PER_THREAD 8
-#define S_SIZE 1024
+#define S_POW 6
+#define S_SIZE (1 << S_POW)
+#define THREADS_PER_BLOCK (2*S_SIZE)
+
 #define MAX_SAMPLE_SIZE 131072
-#define S_POW 10
-#define M 2048
+
+#define M THREADS_PER_BLOCK
 #define T THREADS_PER_BLOCK
 #define L ELEMENTS_PER_THREAD
-#define MAX_GRID_DIM 32768
+#define MAX_GRID_DIM (1 << 30)
 #define K S_SIZE
 
 #ifndef SORTS_SAMPLE_RAND_H
