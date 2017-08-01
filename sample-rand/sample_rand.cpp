@@ -14,12 +14,12 @@
 
 using namespace std;
 
-struct MemoryBase {
+struct BaseData {
     int x_dim;
     int y_dim;
     int number_of_blocks;
     int size;
-    MemoryBase(int size, int block_size): size(size) {
+    BaseData(int size, int block_size): size(size) {
         number_of_blocks = ceil_div(size, block_size);
         x_dim = number_of_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_blocks;
         y_dim = ceil_div(number_of_blocks, x_dim);
@@ -28,7 +28,7 @@ struct MemoryBase {
 
 class PrefsumMemory {
 public:
-    MemoryBase baseData;
+    BaseData baseData;
     int *batchSums;
 
     void clean();
@@ -38,7 +38,7 @@ public:
 };
 
 PrefsumMemory::PrefsumMemory(int size) : baseData(size, PREFSUM_BLOCK_SIZE) {
-    cuMemAllocHost((void **) &batchSums, (baseData.number_of_blocks + 1) * sizeof(int));
+    batchSums = cuAllocHostInts(baseData.number_of_blocks + 1);
 }
 
 
@@ -50,7 +50,7 @@ void PrefsumMemory::clean() {
 
 class Memory {
 public:
-    MemoryBase baseData;
+    BaseData baseData;
     int *sample_offsets;
     CUdeviceptr blockPrefsums;
     CUdeviceptr deviceToSort;
@@ -136,7 +136,7 @@ Memory::Memory(Memory &memory, int sample_nr) : Memory(memory) {
     out = addIntOffset(out, sample_offsets[sample_nr]);
     int size = sample_offsets[sample_nr + 1] - sample_offsets[sample_nr];
     assert(size >= 0);
-    baseData = MemoryBase(size, BLOCK_SIZE);
+    baseData = BaseData(size, BLOCK_SIZE);
     //wydajniej
     if (baseData.size > M) {
         sample_offsets = cuAllocHostInts(S_SIZE + 1);
@@ -179,7 +179,7 @@ Device::Device() {
 }
 
 void Device::scatter(Memory &memory) {
-    MemoryBase& baseData = memory.baseData;
+    BaseData& baseData = memory.baseData;
     void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks};
     manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args2, 0),
                  "running");
@@ -187,7 +187,7 @@ void Device::scatter(Memory &memory) {
 }
 
 void Device::counters(Memory &memory) {
-    MemoryBase& baseData = memory.baseData;
+    BaseData& baseData = memory.baseData;
     void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks};
     manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args1, 0),
                  "running");
@@ -218,7 +218,7 @@ void Device::localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
 }
 
 void Device::globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
-    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &prefsumMemory.baseData.number_of_blocks, &memory.sample_offsets};
+    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets};
     manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, T, 1, 1, 0, 0, args, 0),
                  "pref1");
     cuCtxSynchronize();
@@ -234,12 +234,9 @@ void Device::prefsumOfBatchSums(PrefsumMemory &prefsumMemory) {
 
 void create_search_tree(Memory &memory) {
     //WORKS ONLY IF memory.size > S_SIZE
-    int *tree;
-    cuMemAllocHost((void **) &tree, S_SIZE * sizeof(int));
-    int *sample;
-    cuMemAllocHost((void **) &sample, S_SIZE * sizeof(int));
-    int *to_sort;
-    cuMemAllocHost((void **) &to_sort, memory.baseData.size * sizeof(int));
+    int *tree = cuAllocHostInts(S_SIZE);
+    int *sample = cuAllocHostInts(S_SIZE);
+    int *to_sort = cuAllocHostInts(memory.baseData.size);
     cuMemcpyDtoH(to_sort, memory.deviceToSort, memory.baseData.size * sizeof(int));
     int delta = memory.baseData.size / S_SIZE;
 
@@ -280,13 +277,12 @@ void sample_rand(Device &device, Memory &memory) {
     memory.moveResult();
 
     // could be more efficient
-    PRINT1("father %d\n", memory.baseData.size);
+//    PRINT1("father %d\n", memory.baseData.size);
     for (int i = 0; i < S_SIZE; ++i) {
         int offset = memory.sample_offsets[i];
-        PRINT1( "o %d f %d\n", offset, memory.baseData.size);
+//        PRINT1( "o %d f %d\n", offset, memory.baseData.size);
         int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
 //        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.baseData.size);
-        if (size == 0) PRINT1("ZERO %d %d \n",memory.sample_offsets[i + 1], memory.sample_offsets[i +2]);
         if (size > 0) {
             Memory mem(memory, i);
             assertPrintable(([i, memory, mem] {
@@ -302,13 +298,7 @@ void sample_rand(Device &device, Memory &memory) {
             if (mem.baseData.size > M) {
                 sample_rand(device, mem);
             } else {
-                if (i == 0) {
-                    print_Devtab(mem.deviceToSort, 4, 4, 0 , "BEF");
-                }
                 device.chujowy(mem);
-                if (i  ==0 ) {
-                    print_Devtab(mem.deviceToSort, 4, 4);
-                }
             }
             if (memory.baseData.size > 5000 && mem.baseData.size == 1) {
                 print_Devtab(
