@@ -223,8 +223,9 @@ double radix1(int* tab, int size) {
 double bitonic_sort1(int* tab, int size) {
     sample_rand(tab, size);
 }
+
 void test_correctness() {
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*4);
+    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
 }
 
 int main() {

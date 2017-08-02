@@ -203,7 +203,8 @@ void Device::odd_even(Memory &memory) {
 }
 
 void Device::chujowy(Memory &memory) {
-    assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == 4);
+//    assert(false);
+    assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
     void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
     manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                  "running");
@@ -212,14 +213,14 @@ void Device::chujowy(Memory &memory) {
 
 void Device::localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
     void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums};
-    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, T, 1, 1, 0, 0, args, 0),
+    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, BLOCK_SIZE, 1, 1, 0, 0, args, 0),
                  "pref");
     cuCtxSynchronize();
 }
 
 void Device::globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
     void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets};
-    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, T, 1, 1, 0, 0, args, 0),
+    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, BLOCK_SIZE, 1, 1, 0, 0, args, 0),
                  "pref1");
     cuCtxSynchronize();
 }
@@ -271,7 +272,12 @@ inline void prefsum(Memory &memory, Device &device) {
 
 void sample_rand(Device &device, Memory &memory) {
     create_search_tree(memory);
+
+//    print_Devtab(memory.deviceToSort, memory.baseData.size, memory.baseData.size, 0,"BEF");
     device.counters(memory);
+//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(), memory.prefsumSize(), 0,"After");
+//    assert(false);
+
     prefsum(memory, device);
     device.scatter(memory);
     memory.moveResult();

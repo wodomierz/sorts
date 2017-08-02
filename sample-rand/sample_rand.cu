@@ -13,13 +13,13 @@ void min_max(int *tab, int for_min, int for_max, int size) {
         atomicExch(tab + for_max, min);
         atomicExch(tab + for_min, max);
     }
-};
+} ;
 
 
 __global__
-void chujowy_sort(int * to_sort, int size) {
-    for (int i=1; i< size; ++i) {
-        for (int j=0; j < i; ++j) {
+void chujowy_sort(int *to_sort, int size) {
+    for (int i = 1; i < size; ++i) {
+        for (int j = 0; j < i; ++j) {
             min_max(to_sort, j, i, size);
             __syncthreads();
         }
@@ -27,13 +27,12 @@ void chujowy_sort(int * to_sort, int size) {
 }
 
 
-
 __global__
 void odd_even(int *to_sort) {
     //TODO you MUST check size
-    __shared__ int tab[T*2];
+    __shared__ int tab[T * 2];
 
-    int x = blockIdx.x * blockDim.x *2 + threadIdx.x;
+    int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     int thid = threadIdx.x;
@@ -46,11 +45,11 @@ void odd_even(int *to_sort) {
 
     for (int pow__half_batch = 0, half_batch = 1;
          pow__half_batch <= 10;
-         pow__half_batch++, half_batch <<=1) {
+         pow__half_batch++, half_batch <<= 1) {
 
         int wireThid = thid + ((thid >> pow__half_batch) << pow__half_batch);
         int opposite = wireThid + half_batch;
-        min_max(tab, wireThid, opposite, T*2);
+        min_max(tab, wireThid, opposite, T * 2);
         __syncthreads();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
 
@@ -58,9 +57,9 @@ void odd_even(int *to_sort) {
 
             int period = half_batch - d;
 
-            int wire_id = thid + (((thid>>d_power) + ((thid / period) << 1) + 1) << d_power);
+            int wire_id = thid + (((thid >> d_power) + ((thid / period) << 1) + 1) << d_power);
             int opposite = wire_id + d;
-            min_max(tab, wire_id, opposite, T*2);
+            min_max(tab, wire_id, opposite, T * 2);
 
             __syncthreads();
         }
@@ -83,39 +82,10 @@ __device__ int findIndex(int e, int *bst) {
     return j;
 }
 
-__global__
-void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks) {
-    __shared__ int bst[S_SIZE];
-    __shared__ int histogram[S_SIZE];
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-    int gthid = x + y * gridDim.x * blockDim.x;
-
-    int threadId = threadIdx.x;
-
-    if (threadId < S_SIZE) { //?
-        bst[threadId] = sample[threadId];
-        histogram[threadId] = 0;
-    }
-    __syncthreads();
-
-
-    int j = findIndex(to_sort[gthid], bst);
-    atomicAdd(histogram + j, 1);
-    __syncthreads();
-
-
-    if (threadId < S_SIZE) {
-        //bug?
-        int index = (threadId * number_of_blocks) + blockId;
-        atomicExch(prefsums + index, histogram[threadId]);
-    }
-}
 
 __global__
-void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int* sample_offsets ) {
+void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int *sample_offsets) {
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -125,23 +95,23 @@ void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int* s
     int global_offset = maxPrefSums[blockId];
 
     atomicAdd(localPrefsums + thid, global_offset);
-    atomicAdd(localPrefsums + thid + THREADS_PER_BLOCK, global_offset);
+    atomicAdd(localPrefsums + thid + PREFSUM_THREADS, global_offset);
 
     //czy ta atomiczność i synchronizacja są w ogóle potrzebne?
     __syncthreads();
-    if (thid % number_of_blocks == number_of_blocks -1) {
-        atomicExch(sample_offsets + thid/number_of_blocks + 1, localPrefsums[thid]);
+    if (thid % number_of_blocks == number_of_blocks - 1) {
+        atomicExch(sample_offsets + thid / number_of_blocks + 1, localPrefsums[thid]);
     }
     __syncthreads();
-    if ((thid + T) % number_of_blocks == number_of_blocks - 1) {
-        atomicExch(sample_offsets + (thid+ T)/number_of_blocks + 1, localPrefsums[thid + T]);
+    if ((thid + PREFSUM_THREADS) % number_of_blocks == number_of_blocks - 1) {
+        atomicExch(sample_offsets + (thid + PREFSUM_THREADS) / number_of_blocks + 1, localPrefsums[thid + PREFSUM_THREADS]);
     }
 
 
 }
 __global__
 void prefsum(int *localPrefsums, int *maxPrefSums) {
-    __shared__ int shared[2][T*2 + 1];
+    __shared__ int shared[2][PREFSUM_THREADS * 2 + 1];
 
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -151,13 +121,13 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
     int thid = x + y * gridDim.x * blockDim.x * 2;
 
     shared[0][threadIdx.x] = localPrefsums[thid];
-    shared[0][threadIdx.x + T] = localPrefsums[thid + T];
+    shared[0][threadIdx.x + PREFSUM_THREADS] = localPrefsums[thid + PREFSUM_THREADS];
 
     __syncthreads();
 
     bool from = 1;
     bool to = 0;
-    for (int d = 1; d < T*2; d <<= 1) {
+    for (int d = 1; d < PREFSUM_THREADS * 2; d <<= 1) {
         from = !from;
         to = !to;
         if (2 * threadIdx.x >= d) {
@@ -175,11 +145,51 @@ void prefsum(int *localPrefsums, int *maxPrefSums) {
     }
 
     localPrefsums[thid] = shared[to][threadIdx.x];
-    localPrefsums[thid + T] = shared[to][threadIdx.x + T];
-    if (2 * threadIdx.x + 1 == (T*2 - 1)) {
+    localPrefsums[thid + PREFSUM_THREADS] = shared[to][threadIdx.x + PREFSUM_THREADS];
+    if (2 * threadIdx.x + 1 == (PREFSUM_THREADS * 2 - 1)) {
         maxPrefSums[blockId + 1] = shared[to][2 * threadIdx.x + 1];
     }
 
+}
+
+__global__
+void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks) {
+    __shared__ int bst[S_SIZE];
+    __shared__ int histogram[A][S_SIZE];
+
+
+    int x = blockIdx.x * blockDim.x * ELEMENTS_PER_THREAD + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+
+    int gthid = x + y * gridDim.x * blockDim.x * ELEMENTS_PER_THREAD;
+
+    int threadId = threadIdx.x;
+
+    if (threadId < S_SIZE) { //?
+        bst[threadId] = sample[threadId];
+        for (int a = 0; a < A; ++a) {
+            histogram[a][threadId] = 0;
+        }
+    }
+    __syncthreads();
+
+
+    for (int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
+        int j = findIndex(to_sort[gthid + i * THREADS_PER_BLOCK], bst);
+        atomicAdd(histogram[gthid%A] + j, 1);
+    }
+    __syncthreads();
+
+
+    if (threadId < S_SIZE) {
+        //bug?
+        for(int i=1; i< A; ++i) {
+            histogram[0][threadId] += histogram[i][threadId];
+        }
+        int index = (threadId * number_of_blocks) + blockId;
+        atomicExch(prefsums + index, histogram[0][threadId]);
+    }
 }
 
 __global__
@@ -187,35 +197,29 @@ void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
 
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int x = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+    int y = blockIdx.y + threadIdx.y;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-
-    int gthid = x + y * gridDim.x * blockDim.x;
-
+    int gthid = x + y * gridDim.x * BLOCK_SIZE;
     int threadId = threadIdx.x;
-
     if (threadId < S_SIZE) { //?
         bst[threadId] = sample[threadId];
         histogram[threadId] = 0;
     }
     __syncthreads();
 
-    int e = in[gthid];
-    int j = findIndex(e, bst);
-
-
-    int local_index = atomicAdd(histogram + j, 1);
-    __syncthreads();
-
-    int indexInPrefsums = (j * number_of_blocks) + blockId;
-    int offset = 0;
-    if (indexInPrefsums > 0 ) {
-        offset = prefsums[indexInPrefsums -1];
+    for (int i=0; i < ELEMENTS_PER_THREAD; ++i) {
+        int e = in[gthid + i * THREADS_PER_BLOCK];
+        int j = findIndex(e, bst);
+        int local_index = atomicAdd(histogram + j, 1);
+        int indexInPrefsums = (j * number_of_blocks) + blockId;
+        int offset = 0;
+        if (indexInPrefsums > 0) {
+            offset = prefsums[indexInPrefsums - 1];
+        }
+        out[offset + local_index] = e;
     }
-    out[offset + local_index] = e;
-
 }
 
 }
