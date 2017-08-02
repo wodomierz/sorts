@@ -43,6 +43,10 @@ int ceil_div(int divident, int divisor) {
     return 1+ (divident-1) / divisor;
 }
 
+int ceil_div2(int divident, int power_of_2) {
+    return 1+ ((divident-1) >> power_of_2);
+}
+
 
 CUdeviceptr cuAllocInts(int size) {
     CUdeviceptr result;
@@ -58,4 +62,8 @@ int* cuAllocHostInts(int size) {
 
 CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset) {
     return ptr + offset * sizeof(int);
+}
+
+int expand_to_power_of_2(int number, int power) {
+    return ceil_div2(number, power) << power;
 }

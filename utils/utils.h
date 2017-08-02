@@ -26,5 +26,7 @@ int ceil_div(int, int);
 CUdeviceptr cuAllocInts(int size);
 int* cuAllocHostInts(int size);
 CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset);
+
+int expand_to_power_of_2(int number, int power);
 #endif //SORTS_UTILS_H
 

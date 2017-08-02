@@ -180,7 +180,7 @@ Device::Device() {
 
 void Device::scatter(Memory &memory) {
     BaseData& baseData = memory.baseData;
-    void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks};
+    void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks,&memory.baseData.size};
     manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args2, 0),
                  "running");
     cuCtxSynchronize();
@@ -188,7 +188,7 @@ void Device::scatter(Memory &memory) {
 
 void Device::counters(Memory &memory) {
     BaseData& baseData = memory.baseData;
-    void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks};
+    void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks, &memory.baseData.size};
     manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args1, 0),
                  "running");
     cuCtxSynchronize();
@@ -212,15 +212,16 @@ void Device::chujowy(Memory &memory) {
 }
 
 void Device::localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
-    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums};
-    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, BLOCK_SIZE, 1, 1, 0, 0, args, 0),
+    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &prefsumMemory.baseData.size};
+
+    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
                  "pref");
     cuCtxSynchronize();
 }
 
 void Device::globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
-    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets};
-    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, BLOCK_SIZE, 1, 1, 0, 0, args, 0),
+    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets,&prefsumMemory.baseData.size};
+    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
                  "pref1");
     cuCtxSynchronize();
 }
@@ -263,7 +264,10 @@ void create_search_tree(Memory &memory) {
 inline void prefsum(Memory &memory, Device &device) {
     PrefsumMemory prefsumMemory(memory.prefsumSize());
     device.localPrefSums(memory, prefsumMemory);
+
     device.prefsumOfBatchSums(prefsumMemory);
+
+
     device.globalPrefSums(memory, prefsumMemory);
     prefsumMemory.clean();
 }
@@ -273,12 +277,13 @@ inline void prefsum(Memory &memory, Device &device) {
 void sample_rand(Device &device, Memory &memory) {
     create_search_tree(memory);
 
-//    print_Devtab(memory.deviceToSort, memory.baseData.size, memory.baseData.size, 0,"BEF");
     device.counters(memory);
-//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(), memory.prefsumSize(), 0,"After");
-//    assert(false);
 
+//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(),memory.prefsumSize(), 0,"BEF");
     prefsum(memory, device);
+//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(),memory.prefsumSize(), 0,"aft");
+
+
     device.scatter(memory);
     memory.moveResult();
 
