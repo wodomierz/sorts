@@ -8,7 +8,7 @@
 
 void manageError(CUresult res, std::string message, int line, const char* file) {
     if (res != CUDA_SUCCESS) {
-        printf("%s , error nr: %d file : %s line: %d\n", message.c_str(), res, file, line);
+        printf("%s , error nr: %seq file : %s line: %seq\n", message.c_str(), res, file, line);
         exit(1);
     }
 }

@@ -42,7 +42,7 @@ double res(vector<double>& results, vector<double>& results_opt) {
 
 void print(int *tab, int n) {
     for (int i = 0; i < n; ++i) {
-        printf("%d \n", tab[i]);
+        printf("%seq \n", tab[i]);
     }
 }
 
@@ -189,7 +189,7 @@ void testg(func_withtime sort, int n) {
 //            std::cout << first << endl;
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
-            printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
+            printf("test %seq %seq %seq %seq \n",n, c[j], c[j + 1], j);
             for (int i = -2; (i+j) < n && i < 200; ++i) {
                 cout << (i+j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
@@ -208,7 +208,7 @@ void testg(func_withtime sort, int n) {
             assert(c[j] < c[j + 1]);
         if (c[j] > c[j + 1]) {firsttime = false;}
     }
-    printf("test %d ok\n",n);
+    printf("test %seq ok\n",n);
     free(c);
 }
 
@@ -250,14 +250,14 @@ void test01(func_withtime sort) {
         if (c[j] > c[j + 1]) {
             printf("test01");
             for (int i = 0 ; i < n; ++i) {
-                printf(" %d", c[i]);
+                printf(" %seq", c[i]);
             }
             printf("\n");
 
         }
         assert(c[j] <= c[j + 1]);
         if (c[j] + 1 != c[j + 1]) {
-            printf("test0 %d %d\n", c[j], c[j + 1]);
+            printf("test0 %seq %seq\n", c[j], c[j + 1]);
 
         }
         assert(c[j] + 1 == c[j + 1]);
@@ -276,12 +276,12 @@ void test0(func_withtime sort) {
     sort(c, n);
     for (int j = 0; j < (n - 1); ++j) {
         if (c[j] > c[j + 1]) {
-            printf("test0 %d %d %d\n",j, c[j], c[j + 1]);
+            printf("test0 %seq %seq %seq\n",j, c[j], c[j + 1]);
 
         }
         assert(c[j] <= c[j + 1]);
         if (c[j] + 1 != c[j + 1]) {
-            printf("test0 %d %d\n", c[j], c[j + 1]);
+            printf("test0 %seq %seq\n", c[j], c[j + 1]);
 
         }
         assert(c[j] + 1 == c[j + 1]);
@@ -308,7 +308,7 @@ void test_big(func_withtime sort) {
         sort(d, n);
         for (int j = 0; j < (n - 1); ++j) {
             if (d[j] > d[j + 1]) {
-                printf("testbig %d times %d %d %d %d\n", n, times, j, d[j], d[j + 1]);
+                printf("testbig %seq times %seq %seq %seq %seq\n", n, times, j, d[j], d[j + 1]);
             }
             assert(d[j] <= d[j + 1]);
         }

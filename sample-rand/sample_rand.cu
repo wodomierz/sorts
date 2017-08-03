@@ -1,5 +1,7 @@
 #include "sample_rand.h"
 
+#include "../utils/cuda_device.h"
+
 extern "C" {
 
 __device__

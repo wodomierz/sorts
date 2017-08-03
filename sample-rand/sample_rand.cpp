@@ -70,16 +70,16 @@ void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
     memory.moveResult();
 
     // could be more efficient
-//    PRINT1("father %d\n", memory.baseData.size);
+//    PRINT1("father %seq\n", memory.baseData.size);
     for (int i = 0; i < S_SIZE; ++i) {
         int offset = memory.sample_offsets[i];
-//        PRINT1( "o %d f %d\n", offset, memory.baseData.size);
+//        PRINT1( "o %seq f %seq\n", offset, memory.baseData.size);
         int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
-//        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.baseData.size);
+//        PRINT1( "o1 %seq f %seq\n", memory.sample_offsets[i + 1], memory.baseData.size);
         if (size > 0) {
             sample_rand::Context mem(memory, i);
             assertPrintable(([i, memory, mem] {
-                PRINT1("%d %d %d %d %d\n",
+                PRINT1("%seq %seq %seq %seq %seq\n",
                        i,
                        memory.sample_offsets[i],
                        memory.sample_offsets[i + 1],
@@ -112,7 +112,7 @@ void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
                         indexedPrint
                 );
                 print_Devtab(memory.deviceToSort, memory.baseData.size, 512);
-                PRINT1("\nWAT? %d %d %d %d\n", i, memory.baseData.size, memory.sample_offsets[i], memory.sample_offsets[i + 1]);
+                PRINT1("\nWAT? %seq %seq %seq %seq\n", i, memory.baseData.size, memory.sample_offsets[i], memory.sample_offsets[i + 1]);
                 assert(false);
             }
         }
@@ -125,7 +125,7 @@ void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
 void sampleRand(int *to_sort, int size) {
     int cudaVersion;
     cuDriverGetVersion(&cudaVersion);
-    PRINT1("running version %d\n", cudaVersion);
+    PRINT1("running version %seq\n", cudaVersion);
 
     sample_rand::Device device;
     sample_rand::Context memory(size);
@@ -133,7 +133,7 @@ void sampleRand(int *to_sort, int size) {
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
-    PRINT1("beforedsa %d\n", size);
+    PRINT1("beforedsa %seq\n", size);
     sampleRand(device, memory);
     PRINT("after\n");
 

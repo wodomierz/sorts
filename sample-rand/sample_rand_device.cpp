@@ -50,7 +50,7 @@ namespace sample_rand {
 
     void Device::chujowy(sample_rand::Context &memory) {
 //    assert(false);
-        assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
+        assertPrintable([memory]{PRINT1("%seq %seq\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
         manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                      "running");

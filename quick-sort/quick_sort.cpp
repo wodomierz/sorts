@@ -3,6 +3,7 @@
 //
 
 #include <vector>
+#include <cudaGL.h>
 #include "quick_sort.h"
 #include "cuda.h"
 #include "../utils/utils.h"
@@ -13,23 +14,7 @@
 
 
 
-struct SharedVars {
-    DevArray seq1;
-    DevArray seq2;
-    int block_count;
 
-    SharedVars(const DevArray &seq1, const DevArray &seq2, int block_count) :
-            seq1(seq1), seq2(seq2), block_count(block_count) {}
-
-};
-
-struct Block {
-    WorkUnit workUnit;
-    SharedVars sharedVars;
-
-    Block(const WorkUnit &workUnit, const SharedVars &sharedVars) :
-            workUnit(workUnit), sharedVars(sharedVars) {}
-};
 
 int pivot(CUdeviceptr to_sort, int size) {
     //TODO
@@ -39,11 +24,11 @@ int pivot(CUdeviceptr to_sort, int size) {
 int sum_seq_size(std::vector<WorkUnit> work) {
     int result = 0;
     for (WorkUnit unit : work) {
-        result += unit.d.size;
+        result += unit.seq.size;
     }
 }
 
-void lqsort();
+void lqsort(int size, CUdeviceptr to_sort, CUdeviceptr out);
 
 void sort(int size, CUdeviceptr to_sort, CUdeviceptr out, quick::Device device) {
     int start_pivot = pivot(to_sort, size);
@@ -56,20 +41,20 @@ void sort(int size, CUdeviceptr to_sort, CUdeviceptr out, quick::Device device) 
 
         for (WorkUnit unit : work) {
 
-            int block_count = ceil_div(unit.d.size, block_size);
+            int block_count = ceil_div(unit.seq.size, block_size);
 
             SharedVars parent = SharedVars(
-                    unit.d,
-                    unit.d,
+                    unit.seq,
+                    unit.seq,
                     block_count
             );
             for (int i = 0; i < block_size - 1; i++) {
-                int bstart = unit.d.start + block_size * i;
+                int bstart = unit.seq.start + block_size * i;
                 blocks.push_back(
                         Block(
                                 WorkUnit(
                                         DevArray(
-                                                unit.d.d,
+                                                unit.seq.array,
                                                 bstart,
                                                 bstart + block_size
                                         ),
@@ -83,9 +68,9 @@ void sort(int size, CUdeviceptr to_sort, CUdeviceptr out, quick::Device device) 
                     Block(
                             WorkUnit(
                                     DevArray(
-                                            unit.d.d,
-                                            unit.d.start + block_size*(block_count-1),
-                                            unit.d.end
+                                            unit.seq.array,
+                                            unit.seq.start + block_size*(block_count-1),
+                                            unit.seq.end
                                     ),
                                     unit.pivot
                             ),
@@ -98,7 +83,7 @@ void sort(int size, CUdeviceptr to_sort, CUdeviceptr out, quick::Device device) 
             //???
             work = std::vector<WorkUnit>();
             for (WorkUnit workUnit: news) {
-                if (workUnit.d.size < size / MAX_SEQ) {
+                if (workUnit.seq.size < size / MAX_SEQ) {
                     done.push_back(workUnit);
                 } else {
                     work.push_back(workUnit);
@@ -106,7 +91,7 @@ void sort(int size, CUdeviceptr to_sort, CUdeviceptr out, quick::Device device) 
             }
         }
         done.insert(done.end(), work.begin(), work.end());
-        lqsort();
+        lqsort(size, to_sort, out);
 
     }
 
