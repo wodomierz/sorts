@@ -18,7 +18,6 @@
 #define L ELEMENTS_PER_THREAD
 #define ARRAYS_NUM 8
 #define A ARRAYS_NUM
-#define MAX_GRID_DIM (1 << 30)
 #define BLOCK_SIZE (T * L)
 
 #define M BLOCK_SIZE

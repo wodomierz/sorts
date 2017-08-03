@@ -1,0 +1,12 @@
+//
+// Created by Miron Ficak on 03/08/2017.
+//
+
+#ifndef SORTS_QUICK_SORT_H
+#define SORTS_QUICK_SORT_H
+
+#define QUICK_THREADS_IN_BLOCK 1024
+#define QUICK_BLOCK_SIZE QUICK_THREADS_IN_BLOCK
+#define OTHER_SORT_LIM 2048
+
+#endif //SORTS_QUICK_SORT_H

@@ -10,6 +10,9 @@
 
 #ifndef SORTS_UTILS_H
 #define SORTS_UTILS_H
+
+#define MAX_GRID_DIM (1 << 30)
+
 void manageError(CUresult, std::string, int, const char*);
 
 typedef std::function<bool(int, int*)> Filter;

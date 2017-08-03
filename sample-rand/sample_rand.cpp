@@ -10,7 +10,6 @@
 #include "../utils/utils.h"
 #include <algorithm>
 #include <assert.h>
-#include <cuda_runtime_api.h>
 
 using namespace std;
 
@@ -64,8 +63,6 @@ public:
         cuMemcpy(deviceToSort, out, sizeof(int) * baseData.size);
         cuMemsetD32(out, 0, baseData.size);
     }
-
-public:
     void localClean();
 
     void clean();
