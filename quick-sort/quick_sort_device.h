@@ -8,11 +8,14 @@
 
 #include <cuda.h>
 
-class quick_sort_device {
+namespace quick {
+    class Device {
 
-    void quick_phase1(CUdeviceptr toSort);
-    quick_sort_device();
-};
+        void quick_phase1(CUdeviceptr toSort);
+
+        Device();
+    };
+}
 
 
 #endif //SORTS_QUICK_SORT_DEVICE_H
