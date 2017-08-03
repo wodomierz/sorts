@@ -5,6 +5,8 @@
 #include "quick_sort_device.h"
 
 namespace quick {
+
+
     void Device::quick_phase1(CUdeviceptr toSort) {
 
     }

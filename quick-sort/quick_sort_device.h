@@ -7,13 +7,18 @@
 
 
 #include <cuda.h>
+#include <altivec.h>
+#include <vector>
+#include "quick_sort.h"
 
 namespace quick {
     class Device {
-
+    public:
         void quick_phase1(CUdeviceptr toSort);
 
         Device();
+
+        std::vector<WorkUnit> gqsort();
     };
 }
 
