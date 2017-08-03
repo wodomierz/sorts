@@ -30,6 +30,6 @@
 
 #ifndef SORTS_SAMPLE_RAND_H
 #define SORTS_SAMPLE_RAND_H
-void sample_rand(int*, int);
+void sampleRand(int*, int);
 
 #endif //SORTS_SAMPLE_RAND_H

@@ -8,230 +8,15 @@
 #include <iostream>
 #include <ctime>
 #include "../utils/utils.h"
+#include "sample_rand_context.h"
+#include "sample_rand_device.h"
 #include <algorithm>
 #include <assert.h>
 
 using namespace std;
 
-struct BaseData {
-    int x_dim;
-    int y_dim;
-    int number_of_blocks;
-    int size;
-    BaseData(int size, int block_size): size(size) {
-        number_of_blocks = ceil_div(size, block_size);
-        x_dim = number_of_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_blocks;
-        y_dim = ceil_div(number_of_blocks, x_dim);
-    }
-};
 
-class PrefsumMemory {
-public:
-    BaseData baseData;
-    int *batchSums;
-
-    void clean();
-
-    PrefsumMemory(int);
-
-};
-
-PrefsumMemory::PrefsumMemory(int size) : baseData(size, PREFSUM_BLOCK_SIZE) {
-    batchSums = cuAllocHostInts(baseData.number_of_blocks + 1);
-}
-
-
-
-void PrefsumMemory::clean() {
-    cuMemFreeHost(batchSums);
-}
-
-
-class Memory {
-public:
-    BaseData baseData;
-    int *sample_offsets;
-    CUdeviceptr blockPrefsums;
-    CUdeviceptr deviceToSort;
-    CUdeviceptr out;
-    CUdeviceptr bstPtr;
-
-
-    int prefsumSize();
-
-    void moveResult() {
-        cuMemcpy(deviceToSort, out, sizeof(int) * baseData.size);
-        cuMemsetD32(out, 0, baseData.size);
-    }
-    void localClean();
-
-    void clean();
-
-    Memory(int);
-
-    Memory(Memory &memory, int);
-};
-
-class Device {
-public:
-    CUfunction cuOdeven;
-
-    CUdevice cuDevice;
-    CUmodule cuModule;
-    CUcontext cuContext;
-    CUfunction prefsumDev;
-    CUfunction prefsumDev1;
-    CUfunction countersCU;
-    CUfunction scatterCU;
-
-    CUfunction chujowy_sortDev;
-
-    Device();
-
-    void localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory);
-
-    void prefsumOfBatchSums(PrefsumMemory &prefsumMemory);
-
-    void globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory);
-
-    void chujowy(Memory &memory);
-
-    void scatter(Memory &memory);
-
-    void counters(Memory &memory);
-
-    void odd_even(Memory &memory);
-
-};
-
-
-Memory::Memory(int size): baseData(size, BLOCK_SIZE) {
-
-    sample_offsets = cuAllocHostInts(S_SIZE + 1);
-    sample_offsets[0] = 0;
-    bstPtr = cuAllocInts(S_SIZE);
-    blockPrefsums = cuAllocInts(prefsumSize());
-    cuMemsetD32(blockPrefsums, 0, prefsumSize());
-
-    deviceToSort = cuAllocInts(size);
-    out = cuAllocInts(size);
-    cuMemsetD32(out, 0, size);
-
-
-}
-
-void Memory::clean() {
-
-    cuMemFree(deviceToSort);
-    cuMemFree(out);
-    cuMemFree(blockPrefsums);
-    cuMemFree(bstPtr);
-}
-
-Memory::Memory(Memory &memory, int sample_nr) : Memory(memory) {
-    deviceToSort = addIntOffset(deviceToSort, sample_offsets[sample_nr]);
-    out = addIntOffset(out, sample_offsets[sample_nr]);
-    int size = sample_offsets[sample_nr + 1] - sample_offsets[sample_nr];
-    assert(size >= 0);
-    baseData = BaseData(size, BLOCK_SIZE);
-    //wydajniej
-    if (baseData.size > M) {
-        sample_offsets = cuAllocHostInts(S_SIZE + 1);
-
-    }
-    sample_offsets[0] = 0;
-
-}
-
-int Memory::prefsumSize() {
-    return baseData.number_of_blocks * S_SIZE;
-}
-
-void Memory::localClean() {
-    if (baseData.size > M) {
-        cuMemFreeHost(sample_offsets);
-    }
-
-}
-
-void fprintfMem(Memory &mem) {
-    PRINT1("\nMEM %d\n", mem.baseData.size);
-    print_Devtab(mem.deviceToSort, mem.baseData.size, 64);
-}
-
-Device::Device() {
-    cuInit(0);
-    manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
-    manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
-    manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"), "cannot load module");
-    manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"), "cannot load function");
-    manageResult(cuModuleGetFunction(&prefsumDev1, cuModule, "prefsum1"), "cannot load function");
-    manageResult(cuModuleGetFunction(&countersCU, cuModule, "counters"), "cannot load function");
-    manageResult(cuModuleGetFunction(&scatterCU, cuModule, "scatter"), "cannot load function");
-
-    manageResult(cuModuleGetFunction(&chujowy_sortDev, cuModule, "chujowy_sort"), "cannot load function");
-
-    manageResult(cuModuleGetFunction(&cuOdeven, cuModule, "odd_even"), "cannot load function");
-
-}
-
-void Device::scatter(Memory &memory) {
-    BaseData& baseData = memory.baseData;
-    void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks,&memory.baseData.size};
-    manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args2, 0),
-                 "running");
-    cuCtxSynchronize();
-}
-
-void Device::counters(Memory &memory) {
-    BaseData& baseData = memory.baseData;
-    void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks, &memory.baseData.size};
-    manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args1, 0),
-                 "running");
-    cuCtxSynchronize();
-}
-
-void Device::odd_even(Memory &memory) {
-    void *args[1] = {&memory.deviceToSort};
-    manageResult(cuLaunchKernel(cuOdeven, memory.baseData.size / 2, 1, 1, M / 2, 1, 1, 0, 0, args, 0),
-                 "running");
-    cuCtxSynchronize();
-
-}
-
-void Device::chujowy(Memory &memory) {
-//    assert(false);
-    assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
-    void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
-    manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
-                 "running");
-    cuCtxSynchronize();
-}
-
-void Device::localPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
-    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &prefsumMemory.baseData.size};
-
-    manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
-                 "pref");
-    cuCtxSynchronize();
-}
-
-void Device::globalPrefSums(Memory &memory, PrefsumMemory &prefsumMemory) {
-    void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets,&prefsumMemory.baseData.size};
-    manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
-                 "pref1");
-    cuCtxSynchronize();
-}
-
-void Device::prefsumOfBatchSums(PrefsumMemory &prefsumMemory) {
-    //to jest kurwa wolne
-    prefsumMemory.batchSums[0] = 0;
-    for (int j = 1; j <= prefsumMemory.baseData.number_of_blocks; ++j) {
-        prefsumMemory.batchSums[j] += prefsumMemory.batchSums[j - 1];
-    }
-}
-
-void create_search_tree(Memory &memory) {
+void create_search_tree(sample_rand::Context &memory) {
     //WORKS ONLY IF memory.size > S_SIZE
     int *tree = cuAllocHostInts(S_SIZE);
     int *sample = cuAllocHostInts(S_SIZE);
@@ -258,8 +43,8 @@ void create_search_tree(Memory &memory) {
     cuMemFreeHost(sample);
 }
 
-inline void prefsum(Memory &memory, Device &device) {
-    PrefsumMemory prefsumMemory(memory.prefsumSize());
+inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
+    sample_rand::PrefsumContext prefsumMemory(memory.prefsumSize());
     device.localPrefSums(memory, prefsumMemory);
 
     device.prefsumOfBatchSums(prefsumMemory);
@@ -271,7 +56,7 @@ inline void prefsum(Memory &memory, Device &device) {
 
 //int counter = 0;
 
-void sample_rand(Device &device, Memory &memory) {
+void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
     create_search_tree(memory);
 
     device.counters(memory);
@@ -292,7 +77,7 @@ void sample_rand(Device &device, Memory &memory) {
         int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
 //        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.baseData.size);
         if (size > 0) {
-            Memory mem(memory, i);
+            sample_rand::Context mem(memory, i);
             assertPrintable(([i, memory, mem] {
                 PRINT1("%d %d %d %d %d\n",
                        i,
@@ -304,7 +89,7 @@ void sample_rand(Device &device, Memory &memory) {
                             memory.baseData.size != mem.baseData.size);
             //could be more efficient
             if (mem.baseData.size > M) {
-                sample_rand(device, mem);
+                sampleRand(device, mem);
             } else {
                 device.chujowy(mem);
             }
@@ -337,19 +122,19 @@ void sample_rand(Device &device, Memory &memory) {
 }
 
 
-void sample_rand(int *to_sort, int size) {
+void sampleRand(int *to_sort, int size) {
     int cudaVersion;
     cuDriverGetVersion(&cudaVersion);
     PRINT1("running version %d\n", cudaVersion);
 
-    Device device;
-    Memory memory(size);
+    sample_rand::Device device;
+    sample_rand::Context memory(size);
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
     PRINT1("beforedsa %d\n", size);
-    sample_rand(device, memory);
+    sampleRand(device, memory);
     PRINT("after\n");
 
     cuMemcpyDtoH((void *) to_sort, memory.deviceToSort, size * sizeof(int));
