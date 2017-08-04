@@ -13,14 +13,13 @@
 
 namespace quick {
     class Device {
-
+        CUmodule cuModule;
+        CUfunction gqsortDev;
+        CUfunction lqsortDev;
     public:
-        void quick_phase1(CUdeviceptr toSort);
-
         Device();
-
-        void gqsort(Block* blocks, CUdeviceptr in, CUdeviceptr out, WorkUnit* news);
-        void lqsort(DevArray* seqs, CUdeviceptr& to_sort, CUdeviceptr& out);
+        void gqsort(Block* blocks,int blocks_count, CUdeviceptr in, CUdeviceptr out, WorkUnit* news);
+        void lqsort(DevArray* seqs, int seq_count, CUdeviceptr& to_sort, CUdeviceptr& out);
     };
 }
 

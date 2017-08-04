@@ -26,7 +26,7 @@ CFLAGS += $(COMMONFLAGS)
 
 
 CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx radix/radixsort.ptx \
-sample-rand/sample_rand.ptx
+sample-rand/sample_rand.ptx quick-sort/quick_sort.ptx
 OBJS =  main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o \
 radix/radixsort.cpp.o sample-rand/sample_rand.cpp.o \
 sample-rand/sample_rand_context.cpp.o sample-rand/sample_rand_device.cpp.o sample-rand/PrefsumContext.cpp.o \

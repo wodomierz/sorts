@@ -30,6 +30,14 @@ CUdeviceptr cuAllocInts(int size);
 template <typename T>
 T* cuMemAllocH(int size);
 int* cuAllocHostInts(int size);
+template <typename T>
+CUdeviceptr cuAllocD(int size) {
+    CUdeviceptr ptr;
+    cuMemAlloc(&ptr, size * sizeof(T));
+    return ptr;
+}
+
+
 CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset);
 
 int expand_to_power_of_2(int number, int power);
