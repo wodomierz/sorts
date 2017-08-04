@@ -41,9 +41,8 @@ struct DevArray {
     //exclusive
     int end;
     int size = end - start; //TODO check
-    const CUdeviceptr array;
 
-    DevArray(CUdeviceptr array, int start, int end) : array(array), start(start), end(end) {}
+    DevArray( int start, int end): start(start), end(end) {}
 };
 
 struct WorkUnit {
