@@ -67,3 +67,10 @@ CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset) {
 int expand_to_power_of_2(int number, int power) {
     return ceil_div2(number, power) << power;
 }
+
+template <typename T>
+T* cuMemAllocH(int size) {
+    T* result;
+    cuMemAllocHost((void**) &result, size * sizeof(T));
+    return result;
+}

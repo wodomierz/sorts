@@ -27,6 +27,8 @@ void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from = 0, const c
 
 int ceil_div(int, int);
 CUdeviceptr cuAllocInts(int size);
+template <typename T>
+T* cuMemAllocH(int size);
 int* cuAllocHostInts(int size);
 CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset);
 

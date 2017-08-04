@@ -12,9 +12,30 @@ extern "C" {
 //__global__ int old_end;
 //__global__ int block_count;
 
+
+__device__
+void min_max(int *tab, int for_min, int for_max, int size) {
+    if (for_min >= size || for_max >= size) {
+        return;
+    }
+    int min = tab[for_min];
+    int max = tab[for_max];
+    if (max < min) {
+        atomicExch(tab + for_max, min);
+        atomicExch(tab + for_min, max);
+    }
+} ;
+
 __device__
 void alt_sort(DevArray array, int *in, int *out) {
-    //TODO do sth
+    for (int i =1; i < array.size; ++i) {
+        for (int j=0; j< i; ++j) {
+            min_max(in, array.start + j, array.start + i, array.end);
+        }
+    }
+    for (int i=array.start; i< array.end; ++i) {
+        out[i] = in[i];
+    }
 }
 
 __device__
@@ -67,7 +88,7 @@ void pref_sum(int *array) {
 }
 
 __global__
-void gqsort(Block *blocks, int *in, int *out, WorkUnit *news, int sequences) {
+void gqsort(Block *blocks, int *in, int *out, WorkUnit *news) {
     //cached in to shared ?
     __shared__ int lt[QUICK_THREADS_IN_BLOCK],
         gt[QUICK_THREADS_IN_BLOCK],
@@ -139,7 +160,7 @@ void gqsort(Block *blocks, int *in, int *out, WorkUnit *news, int sequences) {
         news[parent->seq_index] = WorkUnit(DevArray(old_start, s_start), l_pivot);
         news[parent->seq_index] = WorkUnit(DevArray(s_end, old_end), g_pivot);
     }
-} ;
+}
 
 #define LAST_THREAD (QUICK_THREADS_IN_BLOCK - 1)
 
@@ -148,15 +169,14 @@ void altOrPush(
     DevArray &devArray,
     thrust::device_vector<DevArray> &work_stack,
     int *in,
-    int *out
-) {
+    int *out) {
     if (devArray.size <= OTHER_SORT_LIM) {
         alt_sort(devArray, in, out);
     } else work_stack.push_back(devArray);
 }
 
 __global__
-void lqsort(DevArray *seqs, int *in, int *out) {
+void lqsort(DevArray *seqs, int **in_h, int **out_h) {
     __shared__
     int lt[QUICK_THREADS_IN_BLOCK],
         gt[QUICK_THREADS_IN_BLOCK],
@@ -169,7 +189,8 @@ void lqsort(DevArray *seqs, int *in, int *out) {
     //???
     //maybe pointer???
     thrust::device_vector<DevArray> work_stack;
-
+    int* out = *out_h;
+    int* in = *in_h;
     int i, l, l_from, g_from;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -210,11 +231,10 @@ void lqsort(DevArray *seqs, int *in, int *out) {
                 out[g_from++] = in[i];
             }
         }
-        i = s.start + lt[LAST_THREAD] + threadIdx.x;
-        for (; i < s.end - gt[LAST_THREAD]; i += QUICK_THREADS_IN_BLOCK) {
-            out[i] = pivot;
-        }
+
         if (threadIdx.x == LAST_THREAD) {
+            out[s.start + lt[LAST_THREAD]] = pivot;
+
             int lt_sum = lt[LAST_THREAD];
             int gt_sum = gt[LAST_THREAD];
             DevArray long_seq(s.start, s.start + lt_sum);
@@ -226,8 +246,10 @@ void lqsort(DevArray *seqs, int *in, int *out) {
             altOrPush(long_seq, work_stack, in, out);
             altOrPush(short_seq, work_stack, in, out);
         }
-
+        std::swap(in, out);
     }
+    *out_h = in;
+    *in_h = out;
 }
 
 }

@@ -13,12 +13,14 @@
 
 namespace quick {
     class Device {
+
     public:
         void quick_phase1(CUdeviceptr toSort);
 
         Device();
 
-        std::vector<WorkUnit> gqsort();
+        void gqsort(Block* blocks, CUdeviceptr in, CUdeviceptr out, WorkUnit* news);
+        void lqsort(DevArray* seqs, CUdeviceptr& to_sort, CUdeviceptr& out);
     };
 }
 
