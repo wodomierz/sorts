@@ -6,10 +6,10 @@
 #define SORTS_QUICK_SORT_DEVICE_H
 
 
-#include <cuda.h>
-#include <altivec.h>
-#include <vector>
+
 #include "quick_sort.h"
+#include "quick_shared.h"
+#include <cuda.h>
 
 namespace quick {
     class Device {

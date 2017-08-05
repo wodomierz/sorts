@@ -1,11 +1,19 @@
 
 #include "quick_sort.h"
 #include "../utils/cuda_device.h"
+#include "quick_shared.h"
 #include <thrust/device_vector.h>
 
+
+template <typename T>
+__device__ __forceinline__
+void swap(T& a, T&b) {
+    T c  = a;
+    a = b;
+    b = c;
+}
+
 extern "C" {
-
-
 
 
 __device__
@@ -23,12 +31,12 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 
 __device__
 void alt_sort(DevArray array, int *in, int *out) {
-    for (int i =1; i < array.size; ++i) {
-        for (int j=0; j< i; ++j) {
+    for (int i = 1; i < array.size; ++i) {
+        for (int j = 0; j < i; ++j) {
             min_max(in, array.start + j, array.start + i, array.end);
         }
     }
-    for (int i=array.start; i< array.end; ++i) {
+    for (int i = array.start; i < array.end; ++i) {
         out[i] = in[i];
     }
 }
@@ -39,8 +47,6 @@ int median(int *array, int i1, int i2, int i3) {
     //improve
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < i; ++j) {
-            int max = tab[i];
-            int min = tab[j];
             if (tab[i] < tab[j]) {
                 int key = tab[i];
                 tab[i] = tab[j];
@@ -154,49 +160,61 @@ void gqsort(Block *blocks, int *in, int *out, WorkUnit *news) {
 __device__ __forceinline__
 void altOrPush(
     DevArray &devArray,
-    thrust::device_vector<DevArray> &work_stack,
+    DevArray* work_stack,
+    int& stackIndex,
     int *in,
     int *out) {
     if (devArray.size <= OTHER_SORT_LIM) {
         alt_sort(devArray, in, out);
-    } else work_stack.push_back(devArray);
+    } else work_stack[stackIndex++] = devArray;
 }
 
+
+
 __global__
-void lqsort(DevArray *seqs, int& *in_h, int& *out_h) {
-    __shared__
-    int lt[QUICK_THREADS_IN_BLOCK + 1],
-        gt[QUICK_THREADS_IN_BLOCK + 1],
-        pivot;
+void lqsort(DevArray *seqs, int **in_h, int **out_h) {
+    __shared__ int lt[QUICK_THREADS_IN_BLOCK + 1];
+    __shared__ int gt[QUICK_THREADS_IN_BLOCK + 1];
+    __shared__ int pivot;
     // how with shared memory ???
-    __shared__ DevArray newseq1(0, 0);
-    __shared__ DevArray newseq2(0, 0);
-    __shared__ DevArray s(0, 0);
+    __shared__ int start, end;
+
+    //TODO checkout
+    __shared__ DevArray workStack[QUICK_THREADS_IN_BLOCK];
+    __shared__ int workStcIndex;
+
 //        s[QUICK_THREADS_IN_BLOCK];
     //???
     //maybe pointer???
-    thrust::device_vector<DevArray> work_stack;
-    int* out = out_h;
-    int* in = in_h;
-    int i, l, l_from, g_from;
+//    thrust::device_vector<DevArray> work_stack;
+    int *out = *out_h;
+    int *in = *in_h;
+    int i, l_from, g_from;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
     if (threadIdx.x == 0) {
-        work_stack.push_back(seqs[blockId]);
+        workStcIndex = 0;
+        workStack[workStcIndex++] = seqs[blockId];
+//        work_stack.push_back(seqs[blockId]);
     }
-    while (!work_stack.empty()) {
+    while (workStcIndex > 0) {
         //WTF???
-        s = *(&work_stack.back()).get();
-        work_stack.pop_back();
+        if (threadIdx.x == 0) {
+            DevArray dev = workStack[workStcIndex--];
+//                *(&work_stack.back()).get();
+            start = dev.start;
+            end = dev.end;
+//            work_stack.pop_back();
+        }
         // how to work_stack.back().value_type();
 
-        pivot = median(in, s.start, (s.end - 1 + s.start) / 2, s.end - 1);
+        pivot = median(in, start, (end - 1 + start) / 2, end - 1);
         lt[threadIdx.x] = 0;
         gt[threadIdx.x] = 0;
         //synch?
-        i = s.start + threadIdx.x;
-        for (; i < s.end; i += QUICK_THREADS_IN_BLOCK) {
+        i = start + threadIdx.x;
+        for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             if (in[i] < pivot) {
                 lt[threadIdx.x]++;
             }
@@ -206,11 +224,11 @@ void lqsort(DevArray *seqs, int& *in_h, int& *out_h) {
         }
         pref_sum(lt + 1); //exclusive
         pref_sum(gt + 1);
-        l_from = s.start + lt[threadIdx.x];
-        g_from = s.end - gt[threadIdx.x + 1];
+        l_from = start + lt[threadIdx.x];
+        g_from = end - gt[threadIdx.x + 1];
 
-        i = s.start + threadIdx.x;
-        for (; i < s.end; i += QUICK_THREADS_IN_BLOCK) {
+        i = start + threadIdx.x;
+        for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             if (in[i] < pivot) {
                 out[l_from++] = in[i];
             }
@@ -219,29 +237,29 @@ void lqsort(DevArray *seqs, int& *in_h, int& *out_h) {
             }
         }
 
-        int i = s.start + threadIdx.x;
-        for (; i < s.end - lt[QUICK_THREADS_IN_BLOCK]; i+= QUICK_THREADS_IN_BLOCK) {
+        int i = start + threadIdx.x;
+        for (; i < end - lt[QUICK_THREADS_IN_BLOCK]; i += QUICK_THREADS_IN_BLOCK) {
             out[i] = pivot;
         }
         if (threadIdx.x == QUICK_THREADS_IN_BLOCK) {
 
-            out[s.start + lt[QUICK_THREADS_IN_BLOCK]] = pivot;
+            out[start + lt[QUICK_THREADS_IN_BLOCK]] = pivot;
 
             int lt_sum = lt[QUICK_THREADS_IN_BLOCK];
             int gt_sum = gt[QUICK_THREADS_IN_BLOCK];
-            DevArray long_seq(s.start, s.start + lt_sum);
-            DevArray short_seq(s.end - gt_sum, s.end);
+            DevArray long_seq(start, start + lt_sum);
+            DevArray short_seq(end - gt_sum, end);
             if (lt_sum < gt_sum) {
                 //?
-                std::swap(long_seq, short_seq);
+                swap(long_seq, short_seq);
             }
-            altOrPush(long_seq, work_stack, in, out);
-            altOrPush(short_seq, work_stack, in, out);
+            altOrPush(long_seq, workStack, workStcIndex ,in, out);
+            altOrPush(short_seq, workStack,workStcIndex,  in, out);
         }
-        std::swap(in, out);
+        swap(in, out);
     }
-    out_h = in;
-    in_h = out;
+    *out_h = in;
+    *in_h = out;
 }
 
 }

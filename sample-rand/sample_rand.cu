@@ -32,7 +32,7 @@ void chujowy_sort(int *to_sort, int size) {
 __global__
 void odd_even(int *to_sort) {
     //TODO you MUST check size
-    __shared__ int tab[T * 2];
+    __shared__ int tab[THREADS_PER_BLOCK * 2];
 
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -42,7 +42,7 @@ void odd_even(int *to_sort) {
     //TODO check *2 here
 
     tab[thid] = to_sort[gthid];
-    tab[thid + T] = to_sort[gthid + T];
+    tab[thid + THREADS_PER_BLOCK] = to_sort[gthid + THREADS_PER_BLOCK];
     __syncthreads();
 
     for (int pow__half_batch = 0, half_batch = 1;
@@ -51,7 +51,7 @@ void odd_even(int *to_sort) {
 
         int wireThid = thid + ((thid >> pow__half_batch) << pow__half_batch);
         int opposite = wireThid + half_batch;
-        min_max(tab, wireThid, opposite, T * 2);
+        min_max(tab, wireThid, opposite, THREADS_PER_BLOCK * 2);
         __syncthreads();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
 
@@ -61,7 +61,7 @@ void odd_even(int *to_sort) {
 
             int wire_id = thid + (((thid >> d_power) + ((thid / period) << 1) + 1) << d_power);
             int opposite = wire_id + d;
-            min_max(tab, wire_id, opposite, T * 2);
+            min_max(tab, wire_id, opposite, THREADS_PER_BLOCK * 2);
 
             __syncthreads();
         }
@@ -69,7 +69,7 @@ void odd_even(int *to_sort) {
     }
 
     to_sort[gthid] = tab[thid];
-    to_sort[gthid + T] = tab[thid + T];
+    to_sort[gthid + THREADS_PER_BLOCK] = tab[thid + THREADS_PER_BLOCK];
 
 }
 

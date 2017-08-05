@@ -6,19 +6,20 @@
 #include <climits>
 #include <cstdio>
 
+#ifndef SORTS_SAMPLE_RAND_H
+#define SORTS_SAMPLE_RAND_H
+
 #define ELEMENTS_PER_THREAD 4
 #define S_POW 3
 #define S_SIZE (1 << S_POW)
-#define THREADS_PER_BLOCK (S_SIZE)
+#define THREADS_PER_BLOCK S_SIZE
 
 #define MAX_SAMPLE_SIZE 131072
 
 
-#define T THREADS_PER_BLOCK
-#define L ELEMENTS_PER_THREAD
 #define ARRAYS_NUM 8
 #define A ARRAYS_NUM
-#define BLOCK_SIZE (T * L)
+#define BLOCK_SIZE (THREADS_PER_BLOCK * ELEMENTS_PER_THREAD)
 
 #define M BLOCK_SIZE
 
@@ -28,8 +29,9 @@
 
 #define K S_SIZE
 
-#ifndef SORTS_SAMPLE_RAND_H
-#define SORTS_SAMPLE_RAND_H
 void sampleRand(int*, int);
+
+
+
 
 #endif //SORTS_SAMPLE_RAND_H

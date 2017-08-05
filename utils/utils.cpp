@@ -8,7 +8,7 @@
 
 void manageError(CUresult res, std::string message, int line, const char* file) {
     if (res != CUDA_SUCCESS) {
-        printf("%s , error nr: %seq file : %s line: %seq\n", message.c_str(), res, file, line);
+        printf("%s , error nr: %d file : %s line: %d\n", message.c_str(), res, file, line);
         exit(1);
     }
 }
@@ -40,6 +40,7 @@ void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from, const char*
 }
 
 int ceil_div(int divident, int divisor) {
+    if (!divident) return 0;
     return 1+ (divident-1) / divisor;
 }
 
@@ -69,8 +70,14 @@ int expand_to_power_of_2(int number, int power) {
 }
 
 template <typename T>
-T* cuMemAllocH(int size) {
-    T* result;
-    cuMemAllocHost((void**) &result, size * sizeof(T));
-    return result;
-}
+T* cuMemAllocH(int size);
+
+template<typename T>
+T *cuMemAllocH(int size);
+
+//template<typename T>
+//T *cuMemAllocH(int size) {
+//    T* result;
+//    cuMemAllocHost((void**) &result, size * sizeof(T));
+//    return result;
+//}

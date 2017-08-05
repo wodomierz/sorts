@@ -27,7 +27,7 @@ namespace sample_rand {
     void Device::scatter(sample_rand::Context &memory) {
         BaseData& baseData = memory.baseData;
         void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks,&memory.baseData.size};
-        manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args2, 0),
+        manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args2, 0),
                      "running");
         cuCtxSynchronize();
     }
@@ -35,7 +35,7 @@ namespace sample_rand {
     void Device::counters(sample_rand::Context &memory) {
         BaseData& baseData = memory.baseData;
         void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks, &memory.baseData.size};
-        manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, T, 1, 1, 0, 0, args1, 0),
+        manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args1, 0),
                      "running");
         cuCtxSynchronize();
     }
@@ -50,7 +50,7 @@ namespace sample_rand {
 
     void Device::chujowy(sample_rand::Context &memory) {
 //    assert(false);
-        assertPrintable([memory]{PRINT1("%seq %seq\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
+        assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
         manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                      "running");
