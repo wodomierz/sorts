@@ -8,10 +8,10 @@
 #include <cuda.h>
 #include "../utils/utils.h"
 
-#define QUICK_THREADS_IN_BLOCK 1024
+#define QUICK_THREADS_IN_BLOCK 8
 #define QUICK_BLOCK_SIZE QUICK_THREADS_IN_BLOCK
-#define OTHER_SORT_LIM 2048
-#define MAX_SEQ 1024 //????
+#define OTHER_SORT_LIM 8
+#define MAX_SEQ 256 //????
 
 void quick_sort(int* to_sort, int size);
 

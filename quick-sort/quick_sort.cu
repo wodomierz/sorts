@@ -31,7 +31,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 
 __device__
 void alt_sort(DevArray array, int *in, int *out) {
-    for (int i = 1; i < array.size; ++i) {
+    for (int i = 1; i < array.end - array.start; ++i) {
         for (int j = 0; j < i; ++j) {
             min_max(in, array.start + j, array.start + i, array.end);
         }
@@ -42,8 +42,8 @@ void alt_sort(DevArray array, int *in, int *out) {
 }
 
 __device__
-int median(int *array, int i1, int i2, int i3) {
-    int tab[3] = {array[i1], array[i2], array[i3]};
+int median(int *array, int start, int end) {
+    int tab[3] = {array[start], array[(start + end -1)/2], array[end -1]};
     //improve
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < i; ++j) {
@@ -57,10 +57,8 @@ int median(int *array, int i1, int i2, int i3) {
     return tab[1];
 }
 
-__device__
-void pref_sum(int *array) {
-    __shared__ int shared[2][QUICK_THREADS_IN_BLOCK];
-
+__device__ __forceinline__
+void pref_sum(int shared[][QUICK_THREADS_IN_BLOCK], int *array) {
     shared[0][threadIdx.x] = array[threadIdx.x];
     __syncthreads();
 
@@ -77,83 +75,84 @@ void pref_sum(int *array) {
         __syncthreads();
     }
 
-    array[threadIdx.x] = shared[to][threadIdx.x];
-    //sync?
+    array[threadIdx.x + 1] = shared[to][threadIdx.x];
+    if (threadIdx.x == 0) {
+        array[0] = 0;
+    }
     __syncthreads();
 }
 
 __global__
 void gqsort(Block *blocks, int *in, int *out, WorkUnit *news) {
     //cached in to shared ?
-    __shared__ int lt[QUICK_THREADS_IN_BLOCK],
-        gt[QUICK_THREADS_IN_BLOCK],
+    __shared__ int lt[QUICK_THREADS_IN_BLOCK + 1],
+        gt[QUICK_THREADS_IN_BLOCK + 1],
         pivot,
         start,
         end,
         lbeg, gbeg;
-//    __shared__ int* s;
-//    __shared__ int* out_s;
+    __shared__ int shared[2][QUICK_THREADS_IN_BLOCK];
+
     int i, l_from, g_from, l_pivot, g_pivot;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int gthid = threadIdx.x + blockId * blockDim.x;
 
     SharedVars *parent;
 
-    if (threadIdx.x == 0) {
+    if (threadIdx.x == QUICK_THREADS_IN_BLOCK - 1) {
         //broadcast?
         //sync needed?
         Block block = blocks[blockId];
-        parent = &blocks[blockId].sharedVars;
-//        s = (int*) block.workUnit.seq.array;
+        parent = blocks[blockId].sharedVars;
         start = block.workUnit.seq.start;
         end = block.workUnit.seq.end;
         pivot = block.workUnit.pivot;
+
+        lt[threadIdx.x + 1] =0;
+        gt[threadIdx.x + 1] =0;
     }
 
 
     lt[threadIdx.x] = 0;
     gt[threadIdx.x] = 0;
-
+    __syncthreads();
     i = start + threadIdx.x;
 
     for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
         if (in[i] < pivot) lt[threadIdx.x]++;
         if (in[i] > pivot) gt[threadIdx.x]++;
     }
-    pref_sum(lt);
-    pref_sum(gt);
+    pref_sum(shared, lt);
+    pref_sum(shared, gt);
 
 
     if (threadIdx.x == QUICK_THREADS_IN_BLOCK - 1) {
-        lbeg = atomicAdd(&parent->seq1.start, lt[QUICK_THREADS_IN_BLOCK - 1]);
-        gbeg = atomicSub(&parent->seq1.start, gt[QUICK_THREADS_IN_BLOCK - 1]);
+        lbeg = atomicAdd(&(parent->seq.start), lt[QUICK_THREADS_IN_BLOCK]);
+        gbeg = atomicSub(&(parent->seq.end), gt[QUICK_THREADS_IN_BLOCK]) - gt[QUICK_THREADS_IN_BLOCK];
     }
+    __syncthreads();
+
     l_from = lbeg + lt[threadIdx.x];
     g_from = gbeg + gt[threadIdx.x];
-
     i = start + threadIdx.x;
     for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
         if (in[i] < pivot) {
             out[l_from++] = in[i];
         }
         if (in[i] > pivot) {
-            out[g_from++] = in[i];
+            out[g_from++] =  in[i];
         }
     }
-    if (threadIdx.x == 0 && atomicSub(&parent->block_count, 1) == 0) {
-        for (i = parent->seq1.start; i < parent->seq1.end; i++) {
-            in[i] = pivot;
-        }
-        int old_start = parent->seq2.start;
-        int old_end = parent->seq2.end - 1;
-        int s_start = parent->seq1.start;
-        int s_end = parent->seq1.end - 1;
-        l_pivot = median(out, old_start, (old_start + s_start) / 2, s_start);
-        g_pivot = median(out, s_end, (s_end + old_end) / 2, old_end);
 
-        news[parent->seq_index] = WorkUnit(DevArray(old_start, s_start), l_pivot);
-        news[parent->seq_index] = WorkUnit(DevArray(s_end, old_end), g_pivot);
+    if (threadIdx.x == QUICK_THREADS_IN_BLOCK - 1 && atomicSub(&(parent->block_count), 1) == 1) {
+        for (i = parent->seq.start; i < parent->seq.end; i++) {
+            out[i] =  pivot;
+        }
+        l_pivot = median(out, parent->old_seq.start, parent->seq.start);
+        g_pivot = median(out, parent->seq.end, parent->old_seq.end);
+
+        news[2* parent->seq_index] = WorkUnit(DevArray(parent->old_seq.start, parent->seq.start), l_pivot);
+        news[2* parent->seq_index + 1] = WorkUnit(DevArray(parent->seq.end, parent->old_seq.end), g_pivot);
     }
 }
 
@@ -164,7 +163,7 @@ void altOrPush(
     int& stackIndex,
     int *in,
     int *out) {
-    if (devArray.size <= OTHER_SORT_LIM) {
+    if (devArray.end - devArray.start <= OTHER_SORT_LIM) {
         alt_sort(devArray, in, out);
     } else work_stack[stackIndex++] = devArray;
 }
@@ -183,6 +182,7 @@ void lqsort(DevArray *seqs, int **in_h, int **out_h) {
     __shared__ DevArray workStack[QUICK_THREADS_IN_BLOCK];
     __shared__ int workStcIndex;
 
+    __shared__ int shared[2][QUICK_THREADS_IN_BLOCK];
 //        s[QUICK_THREADS_IN_BLOCK];
     //???
     //maybe pointer???
@@ -209,7 +209,7 @@ void lqsort(DevArray *seqs, int **in_h, int **out_h) {
         }
         // how to work_stack.back().value_type();
 
-        pivot = median(in, start, (end - 1 + start) / 2, end - 1);
+        pivot = median(in, start, end);
         lt[threadIdx.x] = 0;
         gt[threadIdx.x] = 0;
         //synch?
@@ -222,8 +222,8 @@ void lqsort(DevArray *seqs, int **in_h, int **out_h) {
                 gt[threadIdx.x]++;
             }
         }
-        pref_sum(lt + 1); //exclusive
-        pref_sum(gt + 1);
+        pref_sum(shared, lt + 1); //exclusive
+        pref_sum(shared, gt + 1);
         l_from = start + lt[threadIdx.x];
         g_from = end - gt[threadIdx.x + 1];
 

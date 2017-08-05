@@ -1,6 +1,3 @@
-//
-// Created by Miron Ficak on 28/06/2017.
-//
 
 #include <cassert>
 #include "utils.h"

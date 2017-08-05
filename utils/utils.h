@@ -1,13 +1,14 @@
 //
 // Created by Miron Ficak on 28/06/2017.
 //
-#include <string>
-#include <functional>
-#include "cuda.h"
-#include <vector>
+
+
 #ifndef SORTS_UTILS_H
 #define SORTS_UTILS_H
 
+#include <string>
+#include "cuda.h"
+#include <vector>
 
 #define PRINT(...) {}
 #define PRINT1(...) fprintf(stderr, ##__VA_ARGS__)

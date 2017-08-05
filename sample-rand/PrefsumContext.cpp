@@ -4,7 +4,7 @@
 
 #include "PrefsumContext.h"
 #include "sample_rand.h"
-
+#include "../utils/BaseData.h"
 
 namespace sample_rand {
 

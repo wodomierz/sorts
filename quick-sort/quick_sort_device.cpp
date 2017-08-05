@@ -1,6 +1,3 @@
-//
-// Created by Miron Ficak on 03/08/2017.
-//
 
 #include "quick_sort_device.h"
 #include "../utils/utils.h"
@@ -17,7 +14,16 @@ namespace quick {
         int x_dim = block_count > MAX_GRID_DIM? MAX_GRID_DIM : block_count;
         int y_dim = ceil_div(block_count, x_dim);
         void* args[]{&blocks, &in, &out, &news};
-        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,0,0), "running");
+        PRINT1("launch gqsort %d %d %d %d\n", block_count, QUICK_THREADS_IN_BLOCK, x_dim, y_dim);
+        PRINT1("launch gqsort %d %d %d %d %d %d\n", blocks[0].workUnit.seq.start, blocks[0].workUnit.seq.end,
+
+        blocks[0].sharedVars->seq.start,
+        blocks[0].sharedVars->seq.end,
+               blocks[0].workUnit.pivot,
+               blocks[0].sharedVars->block_count
+        );
+        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,args,0), "running");
+        cuCtxSynchronize();
     }
 
     void Device::lqsort(DevArray *seqs, int seqs_count, CUdeviceptr& in, CUdeviceptr& out) {
@@ -30,7 +36,8 @@ namespace quick {
 
 
         void* args[]{&seqs, &ptr_in, &ptr_out};
-        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,0,0), "running");
+        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,args,0), "running");
+        cuCtxSynchronize();
         in = *ptr_in;
         out = *ptr_out;
     }

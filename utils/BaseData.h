@@ -9,6 +9,7 @@
 #include "utils.h"
 
 struct BaseData {
+public:
     int x_dim;
     int y_dim;
     int number_of_blocks;

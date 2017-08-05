@@ -3,6 +3,7 @@
 //
 
 #include <cassert>
+#include "PrefsumContext.h"
 #include "sample_rand_context.h"
 #include "sample_rand.h"
 
