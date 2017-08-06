@@ -191,7 +191,7 @@ void testg(func_withtime sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = -2; (i+j) < n && i < 200; ++i) {
+            for (int i = -2; (i+j) < n && i < 10; ++i) {
                 cout << (i+j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
@@ -227,8 +227,22 @@ double bitonic_sort1(int* tab, int size) {
 }
 
 void test_correctness() {
+    srand(time(NULL));
+
 //    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , 256);
+//    testg(bitonic_sort1 , 1024*1024);
+    int z =10;
+    while(--z) {
+        int max = 20*1024*1024;
+        int min = 1000000;
+        int i =  rand()%(max-min + 1) + min;
+
+        testg(bitonic_sort1 , i);
+    }
+//    testg(bitonic_sort1, 123);
+//    testg(bitonic_sort1, 1024*234);
+//    testg(bitonic_sort1 , 1024*1024);
+//    testg(bitonic_sort1 , 234567890);
 }
 
 int main() {

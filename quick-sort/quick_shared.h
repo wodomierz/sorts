@@ -9,8 +9,10 @@
 
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV __device__
+#define INLINE __device__ __forceinline__
 #else
 #define CUDA_HOSTDEV
+#define INLINE inline
 #endif
 
 struct DevArray {
@@ -25,6 +27,10 @@ struct DevArray {
 
 };
 typedef struct DevArray DevArray;
+
+INLINE int arraySize(DevArray& devArray) {
+    return devArray.end - devArray.start;
+}
 
 struct SharedVars {
     int seq_index;
