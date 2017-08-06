@@ -191,7 +191,7 @@ void testg(func_withtime sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = -2; (i+j) < n && i < 0; ++i) {
+            for (int i = -2; (i+j) < n && i < 200; ++i) {
                 cout << (i+j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;

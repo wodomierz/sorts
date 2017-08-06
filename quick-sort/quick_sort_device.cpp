@@ -34,11 +34,14 @@ namespace quick {
         *ptr_in = in;
         *ptr_out = out;
 
+        PRINT1("launch gqsort %d %d %d %d\n", seqs_count, QUICK_THREADS_IN_BLOCK, x_dim, y_dim);
 
         void* args[]{&seqs, &ptr_in, &ptr_out};
-        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,args,0), "running");
+        manageResult(cuLaunchKernel(lqsortDev, x_dim, y_dim,1, QUICK_THREADS_IN_BLOCK, 1, 1, 0,0,args,0), "running");
         cuCtxSynchronize();
         in = *ptr_in;
         out = *ptr_out;
+        cuMemFreeHost(ptr_in);
+        cuMemFreeHost(ptr_out);
     }
 }

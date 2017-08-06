@@ -15,7 +15,7 @@ int pivot(CUdeviceptr to_sort, int size) {
     cuMemcpyDtoH(copy, to_sort, size * sizeof(int));
     PRINT1("co do chuja %d %d %d", copy[0], copy[1], copy[2]);
     std::sort(copy, copy + size);
-    return copy[size / 2];
+    return copy[(size -1) / 2];
 }
 
 int sum_seq_size(std::vector<WorkUnit> work) {
@@ -33,6 +33,50 @@ void checkMem(){
     cuMemFreeHost(doneArrays1);
 }
 
+
+void prepareBlocks(Block* blocks, SharedVars* parents, std::vector<WorkUnit>& work, int block_size ){
+    int total_block_index = 0;
+    int seq_index = -1;
+
+    for (WorkUnit unit : work) {
+        int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
+        parents[++seq_index] = SharedVars(
+            unit.seq,
+            unit.seq,
+            block_count,
+            seq_index
+        );
+        int i;
+        for (i = 0; i < block_count - 1; i++) {
+            int bstart = unit.seq.start + block_size * i;
+            blocks[total_block_index++] = {
+                {
+                    //???
+                    {bstart, bstart + block_size},
+                    unit.pivot
+                },
+                parents + seq_index
+            };
+            DevArray &array = blocks[total_block_index - 1].workUnit.seq;
+//                PRINT1("add block %d %d %d\n", array.start, array.end, total_block_index -1);
+        }
+        blocks[total_block_index++] = {
+            {
+                {
+                    unit.seq.start + block_size * i,
+                    unit.seq.end
+                },
+                unit.pivot
+            },
+            parents +seq_index
+        };
+        DevArray &array = blocks[total_block_index - 1].workUnit.seq;
+//            PRINT1("add block %d %d\n", array.start, array.end);
+
+
+    }
+}
+
 void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     quick::Device device;
 
@@ -44,68 +88,28 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
 
 //    print_Devtab(in, size, size,0, "IN");
 
-
+//    int L =0, R=size-1;
     while (!work.empty() && work.size() + done.size() < max_seq) {
         int block_size = sum_seq_size(work) / max_seq;
 //
         PRINT1("while %d %d %d\n", block_size, sum_seq_size(work), max_seq);
-        std::list<Block> block_list;
 
-        int seq_index = -1;
         int total_block_count = 0;
         for (WorkUnit unit : work) {
-            //??
-            PRINT1("ceil? %d\n", block_size);
             int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
-            PRINT1("ceil afetr %d\n", block_size);
             total_block_count += block_count;
         }
 
         //consider vector and register array of this vector??
         Block *blocks = cuMemAllocH<Block>(total_block_count);
-        int total_block_index = 0;
+
 
         SharedVars* parents = cuMemAllocH<SharedVars>(work.size());
-        for (WorkUnit unit : work) {
-            PRINT1("ceil? %d\n", block_size);
-            int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
-            PRINT1("ceil afetr %d %d %d %d\n", block_size, block_count, unit.seq.end, unit.seq.start);
-            parents[++seq_index] = SharedVars(
-                unit.seq,
-                unit.seq,
-                block_count,
-                seq_index
-            );
-            int i;
-            for (i = 0; i < block_count - 1; i++) {
-                int bstart = unit.seq.start + block_size * i;
-                blocks[total_block_index++] = {
-                    {
-                        //???
-                        {bstart, bstart + block_size},
-                        unit.pivot
-                    },
-                    parents + seq_index
-                };
-                DevArray &array = blocks[total_block_index - 1].workUnit.seq;
-//                PRINT1("add block %d %d %d\n", array.start, array.end, total_block_index -1);
-            }
-            blocks[total_block_index++] = {
-                {
-                    {
-                        unit.seq.start + block_size * i,
-                        unit.seq.end
-                    },
-                    unit.pivot
-                },
-                parents +seq_index
-            };
-            DevArray &array = blocks[total_block_index - 1].workUnit.seq;
-//            PRINT1("add block %d %d\n", array.start, array.end);
 
+        prepareBlocks(blocks, parents, work, block_size);
 
-        }
-        PRINT1("alloc ? gqsort %d\n", seq_index);
+        int seq_num = work.size();
+        PRINT1("alloc ? gqsort %d\n", seq_num);
         //TODO
         WorkUnit *news = cuMemAllocH<WorkUnit>(2*work.size());
 
@@ -113,9 +117,8 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         checkMem();
         PRINT1("before gqsort\n");
 //        print_Devtab(out, size, size,0, "BEF GQ");
-        cuCtxSynchronize();
         device.gqsort(blocks, total_block_count, in, out, news);
-        cuCtxSynchronize();
+
         checkMem();
         checkMem();
         PRINT1("afetr gqsort %d %d %d\n", blocks[0].sharedVars->seq.start, blocks[1].sharedVars->seq.end, blocks[0].sharedVars->block_count);
@@ -123,24 +126,49 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         print_Devtab(out, size, size,0, "GQSORT");
         int* toSort = cuMemAllocH<int>(size);
         cuMemcpyDtoH(toSort, out, sizeof(int) * size);
-        std::sort(toSort, toSort + size);
-        print_tab(toSort, size, size, "SORTED");
+
+        for (WorkUnit wu: work) {
+            int L = wu.seq.start;
+            int R = wu.seq.end -1;
+            PRINT1("WORK: %d %d\n", L,R);
+            assert(L <= R);
+            int d = wu.pivot;
+//        std::sort(toSort, toSort + size);
+            std::sort(toSort + L, toSort + d);
+            std::sort(toSort + d + 1, toSort + R +1);
+
+            print_tab(toSort + L, d - L, d -L, "first half SORTED");
+
+            PRINT1("pivot %d %d %d\n", toSort[d],wu.pivot, d);
+            assert(toSort[d] == wu.pivot);
+            print_tab(toSort + d + 1, R- d, R - d, "second half SORTED");
+
+            assert(toSort[d - 1] < toSort[d + 1]);
+        }
 //        PRINT1("%d %d %d %d", news[0].pivot, news[0])
         checkMem();
         //???
         PRINT1("work clear?\n");
-        assert(false);
+//        assert(false);
         work.clear();
         checkMem();
         PRINT1("work cleared\n");
-        for (int i = 0; i <= seq_index; ++i) {
-            WorkUnit &workUnit = news[i];
+        for (int i = 0; i < seq_num; ++i) {
+            WorkUnit &workUnitL = news[2*i];
+            WorkUnit &workUnitR = news[2*i+1];
             checkMem();
-            PRINT1("work unit get %d %d %d\n", i, workUnit.seq.start, workUnit.seq.end);
-            if (workUnit.seq.end - workUnit.seq.start < size / max_seq) {
-                done.push_back(workUnit);
+            PRINT1("work unit get %d %d %d\n", i, workUnitL.seq.start, workUnitL.seq.end);
+
+            if (workUnitL.seq.end - workUnitL.seq.start < size / max_seq) {
+                done.push_back(workUnitL);
             } else {
-                work.push_back(workUnit);
+                work.push_back(workUnitL);
+            }
+
+            if (workUnitR.seq.end - workUnitR.seq.start < size / max_seq) {
+                done.push_back(workUnitR);
+            } else {
+                work.push_back(workUnitR);
             }
         }
         std::swap(in, out);
@@ -167,10 +195,24 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         doneArrays[i] = done[i].seq;
         PRINT1("array copied: %d\n", i);
     }
-    PRINT1("lq bef\n");
-    device.lqsort(doneArrays, done.size(), in, out);
-    PRINT1("lq after\n");
 
+
+    print_Devtab(in, size, size, 0,"BEF RESULT");
+    checkMem();
+    checkMem();
+    checkMem();
+    checkMem();
+    PRINT1("lq bef\n");
+
+    device.lqsort(doneArrays, done.size(), in, out);
+    checkMem();
+    checkMem();
+    checkMem();
+    checkMem();
+
+
+    PRINT1("lq after\n");
+    print_Devtab(out, size, size, 0,"RESULT");
     cuMemFreeHost(doneArrays);
     PRINT1("free arrays");
 }
@@ -181,6 +223,8 @@ void quick_sort_device(CUdeviceptr to_sort, int size) {
     CUdeviceptr out = cuAllocInts(size);
     cuMemsetD32(out, 0, size);
     sort(size, in, out);
+
+    PRINT1("\nCODOCHUJA %lu %lu %lu\n", to_sort, in, out);
 
     if (out != to_sort) {
         cuMemcpyDtoD(to_sort, out, sizeof(int) * size);
