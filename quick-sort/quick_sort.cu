@@ -143,6 +143,7 @@ void gqsort(Block *blocks, int *in, int *out, WorkUnit *news) {
             out[g_from++] =  in[i];
         }
     }
+
     __syncthreads();
     if (threadIdx.x == QUICK_THREADS_IN_BLOCK - 1 && atomicSub(&(parent->block_count), 1) == 1) {
         for (i = parent->seq.start; i < parent->seq.end; i++) {
@@ -210,8 +211,8 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
             DevArray dev = workStack[workStcIndex--];
             start = dev.start;
             end = dev.end;
-            lt[threadIdx.x + QUICK_THREADS_IN_BLOCK] = 0;
-            gt[threadIdx.x + QUICK_THREADS_IN_BLOCK] = 0;
+            lt[QUICK_THREADS_IN_BLOCK] = 0;
+            gt[QUICK_THREADS_IN_BLOCK] = 0;
         }
         __syncthreads();
         // how to work_stack.back().value_type();
@@ -253,7 +254,7 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
         i = start + lt[QUICK_THREADS_IN_BLOCK] + threadIdx.x;
         for (; i < end - gt[QUICK_THREADS_IN_BLOCK]; i += QUICK_THREADS_IN_BLOCK) {
             out[i] = pivot;
-            in[i] = pivot;
+//            in[i] = pivot;
         }
         __syncthreads();
         if (threadIdx.x == 0) {
@@ -262,6 +263,11 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
             int gt_sum = gt[QUICK_THREADS_IN_BLOCK];
             DevArray long_seq(start, start + lt_sum);
             DevArray short_seq(end - gt_sum, end);
+
+            if (start + lt_sum > end - gt_sum) {
+                workStcIndex = -10000;
+            }
+
             if (lt_sum <= gt_sum) {
                 //?
                 swap(long_seq, short_seq);
@@ -311,13 +317,17 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
 //            }
         }
         __syncthreads();
-        swap(in, out);
+        //todo imporve it
+        i = gstart + threadIdx.x;
+        for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
+            in[i] = out[i];
+        }
         __syncthreads();
     }
     __syncthreads();
     i = gstart + threadIdx.x;
     for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
-        out_h[i] = i;
+        out_h[i] = in[i];
 //            out[i];
 //        in_h[i] = -20;
 //            in[i];

@@ -25,13 +25,13 @@ void print_tab(int* tab, int size, int prints, const char* title, Printer printe
 void print_Devtab(CUdeviceptr& dtab, int size, int prints, int from, const char* title, Printer printer, Filter filter) {
     int * tab;
 
-    prints = std::min(size, prints);
+//    prints = std::min(size, prints);
     cuCtxSynchronize();
-    cuMemAllocHost((void**) &tab, sizeof(int) * prints);
+    cuMemAllocHost((void**) &tab, sizeof(int) * size);
 
-    cuMemcpyDtoH((void*) tab, dtab, sizeof(int) * prints);
+    cuMemcpyDtoH((void*) tab, dtab, sizeof(int) * size);
 
-    print_tab(tab + from, prints - from, prints,title, printer);
+    print_tab(tab + from, size - from, prints,title, printer);
     cuCtxSynchronize();
     cuMemFreeHost(tab);
 }

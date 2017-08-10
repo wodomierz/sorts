@@ -183,7 +183,7 @@ void testg(func_withtime sort, int n) {
     bool firsttime = true;
 
     for (int j = 0; j < (n - 1); ++j) {
-        if (c[j] >= c[j + 1]) {
+        if (c[j] != j) {
 
 
 //            std::bitset<32> first(c[j]);
@@ -206,7 +206,7 @@ void testg(func_withtime sort, int n) {
             printf("\n");
         }
 //        if (!firsttime)
-            assert(c[j] < c[j + 1]);
+            assert(c[j] == j);
         if (c[j] > c[j + 1]) {firsttime = false;}
     }
     printf("test %d ok\n",n);
