@@ -133,7 +133,7 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         for (WorkUnit wu: work) {
             int L = wu.seq.start;
             int R = wu.seq.end -1;
-            PRINT1("WORK: %d %d\n", L,R);
+//            PRINT1("WORK: %d %d\n", L,R);
             assert(L <= R);
             int d = wu.pivot;
 //        std::sort(toSort, toSort + size);
@@ -142,7 +142,7 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
 
 //            print_tab(toSort + L, d - L, d -L, "first half SORTED");
 
-            PRINT1("pivot %d %d %d\n", toSort[d],wu.pivot, d);
+//            PRINT1("pivot %d %d %d\n", toSort[d],wu.pivot, d);
             assert(toSort[d] == wu.pivot);
 //            print_tab(toSort + d + 1, R- d, R - d, "second half SORTED");
 
@@ -160,7 +160,7 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         for (WorkUnit wu: done) {
             int L = wu.seq.start;
             int R = wu.seq.end -1;
-            PRINT1("DONE: %d %d\n", L,R);
+//            PRINT1("DONE: %d %d\n", L,R);
             assert(L <= R);
             int d = wu.pivot;
 //        std::sort(toSort, toSort + size);
