@@ -34,18 +34,18 @@ namespace quick {
 //        *ptr_in = in;
 //        *ptr_out = out;
 
-        int *debugger = cuMemAllocH<int>(100000);
-        for (int i = 0; i < 100000; ++i) debugger[i] = -2;
+//        int *debugger = cuMemAllocH<int>(100000);
+//        for (int i = 0; i < 100000; ++i) debugger[i] = -2;
 
         PRINT1("launch lqsort %d %d %d %d\n", seqs_count, QUICK_THREADS_IN_BLOCK, x_dim, y_dim);
 
-        void *args[]{&seqs, &in, &out, &debugger};
+        void *args[]{&seqs, &in, &out};
         manageResult(cuLaunchKernel(lqsortDev, x_dim, y_dim, 1, QUICK_THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),
                      "running");
         cuCtxSynchronize();
-        for (int i = 0; i < 50; ++i) {
-            PRINT1("deb %d %d\n", i, debugger[i]);
-        }
+//        for (int i = 0; i < 50; ++i) {
+//            PRINT1("deb %d %d\n", i, debugger[i]);
+//        }
 
 //        in = *ptr_in;
 //        out = *ptr_out;

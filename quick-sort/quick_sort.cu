@@ -161,7 +161,7 @@ void pref_sum(int shared[][QUICK_THREADS_IN_BLOCK], int *array) {
     if (threadIdx.x == 0) {
         array[0] = 0;
     }
-    __syncthreads();
+//    __syncthreads();
 }
 
 __global__
@@ -262,7 +262,7 @@ void altOrPush(
 
 
 __global__
-void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
+void lqsort(DevArray *seqs, int *in_h, int *out_h) {
     __shared__ int lt[QUICK_THREADS_IN_BLOCK + 1];
     __shared__ int gt[QUICK_THREADS_IN_BLOCK + 1];
     __shared__ int pivot;
@@ -293,19 +293,19 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
 
-    __syncthreads();
+//    __syncthreads();
 //    atomicExch(debugger, 35);
-    if (threadIdx.x == 0) {
+//    if (threadIdx.x == 0) {
 //        debugger[3] =7;
-        if (atomicExch(debugger + 0, blockId) == -2) {
-            debind =1;
-            lock = blockId;
-            debugger[debind++] = -999;
-        }
-
-
-    }
-    __syncthreads();
+//        if (atomicExch(debugger + 0, blockId) == -2) {
+//            debind =1;
+//            lock = blockId;
+//            debugger[debind++] = -999;
+//        }
+//
+//
+//    }
+//    __syncthreads();
 
     if (threadIdx.x == 0) {
         workStcIndex = 0;
@@ -325,13 +325,14 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
             end = dev.end;
             lt[QUICK_THREADS_IN_BLOCK] = 0;
             gt[QUICK_THREADS_IN_BLOCK] = 0;
-        }
-        __syncthreads();
-        // how to work_stack.back().value_type();
-
-        if(threadIdx.x ==0) {
             pivot = median(in, start, end);
         }
+//        __syncthreads();
+        // how to work_stack.back().value_type();
+
+//        if(threadIdx.x ==0) {
+
+//        }
         lt[threadIdx.x] = 0;
         gt[threadIdx.x] = 0;
         __syncthreads();
@@ -345,14 +346,14 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
                 gt[threadIdx.x]++;
             }
         }
-        __syncthreads();
+//        __syncthreads();
         pref_sum(shared, lt); //exclusive
         __syncthreads();
         pref_sum(shared, gt);
         __syncthreads();
         l_from = start + lt[threadIdx.x];
         g_from = end - gt[threadIdx.x + 1];
-        __syncthreads();
+//        __syncthreads();
         i = start + threadIdx.x;
         for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             if (in[i] < pivot) {
@@ -362,13 +363,13 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
                 out[g_from++] = in[i];
             }
         }
-        __syncthreads();
+//        __syncthreads();
         i = start + lt[QUICK_THREADS_IN_BLOCK] + threadIdx.x;
         for (; i < end - gt[QUICK_THREADS_IN_BLOCK]; i += QUICK_THREADS_IN_BLOCK) {
             out[i] = pivot;
 //            in[i] = pivot;
         }
-        __syncthreads();
+//        __syncthreads();
         if (threadIdx.x == 0) {
 
             int lt_sum = lt[QUICK_THREADS_IN_BLOCK];
@@ -383,90 +384,29 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h, int* debugger) {
                 //?
                 swap(long_seq, short_seq);
             }
-//            if (blockId == 0){
-//                debugger[debind++] = gstart;
-//                debugger[debind++] = gend;
-//                debugger[debind++] = -8000;
-//                debugger[debind++] = start;
-//                debugger[debind++] = pivot;
-//                debugger[debind++] = end;
-//                debugger[debind++] = lt_sum;
-//                debugger[debind++] = gt_sum;
-//                debugger[debind++] = -3000;
-//            }
-
-//            if (blockId == 0 && short_seq.end - short_seq.start <= OTHER_SORT_LIM) {
-//                debugger[debind++] = -2000;
-//                for (int i= short_seq.start; i < short_seq.end;++i) {
-//                    debugger[debind++] = out[i];
-//                }
-//                debugger[debind++] = -2000;
-//            }
-
-
-
-//            if (blockId == 0 && short_seq.end - short_seq.start <= OTHER_SORT_LIM) {
-//                debugger[debind++] = -500;
-//                debugger[debind++] = short_seq.start;
-//                debugger[debind++] = short_seq.end;
-//                debugger[debind++] = -500;
-//                for (int i= short_seq.start; i < short_seq.end;++i) {
-//                    debugger[debind++] = out[i];
-//                }
-//                debugger[debind++] = -500;
-//            }
-//            if (blockId == 0 && long_seq.end - long_seq.start <= OTHER_SORT_LIM) {
-//                debugger[debind++] = -1000;
-//                debugger[debind++] = long_seq.start;
-//                debugger[debind++] = long_seq.end;
-//                debugger[debind++] = -1000;
-//
-//                for (int i= long_seq.start; i < long_seq.end;++i) {
-//                    debugger[debind++] = out[i];
-//                }
-//                debugger[debind++] = -1000;
-//            }
         }
 
         __syncthreads();
         altOrPush(long_seq, workStack, workStcIndex , out, tab);
         __syncthreads();
-        if (threadIdx.x == 0 && lock == blockId) {
-            debugger[debind++] = -100;
-            debugger[debind++] = out[long_seq.start];
-            debugger[debind++] = long_seq.start;
-            debugger[debind++] = out[long_seq.end -1];
-            debugger[debind++] = long_seq.end;
-            debugger[debind++] = -100;
-        }
-        __syncthreads();
         altOrPush(short_seq, workStack,workStcIndex, out, tab);
         __syncthreads();
 
-        if (threadIdx.x == 0 && lock == blockId) {
-            debugger[debind++] = -500;
-            debugger[debind++] = out[short_seq.start];
-            debugger[debind++] = short_seq.start;
-            debugger[debind++] = out[short_seq.end -1];
-            debugger[debind++] = short_seq.end;
-            debugger[debind++] = -500;
-        }
-        __syncthreads();
         //todo imporve it
         i = gstart + threadIdx.x;
         for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
             in[i] = out[i];
         }
-        __syncthreads();
+//        __syncthreads();
     }
-    __syncthreads();
-    i = gstart + threadIdx.x;
-    for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
-        out_h[i] = in[i];
+//    __syncthreads();
+//    i = gstart + threadIdx.x;
+//    for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
+//        out_h[i] = in[i];
 //            out[i];
 //        in_h[i] = -20;
 //            in[i];
-    }
+//    }
 }
 
 }
