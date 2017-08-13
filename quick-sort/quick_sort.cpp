@@ -8,13 +8,14 @@
 #include <algorithm>
 #include <cassert>
 //PIVOTY CO ZE MNA ROBICIE
-int pivot(CUdeviceptr to_sort, int size) {
+int pivot(CUdeviceptr to_sort, int size,quick::Device& device) {
     //TODO
-    int *copy = cuMemAllocH<int>(size);
-    cuMemcpyDtoH(copy, to_sort, size * sizeof(int));
+//    int *copy = cuMemAllocH<int>(size);
+//    cuMemcpyDtoH(copy, to_sort, size * sizeof(int));
 //    PRINT1("co do chuja %d %d %d", copy[0], copy[1], copy[2]);
-    std::sort(copy, copy + size);
-    return copy[(size -1) / 2];
+//    std::sort(copy, copy + size);
+    return device.pivot(to_sort, size);
+//        copy[(size -1) / 2];
 }
 
 int sum_seq_size(std::vector<WorkUnit> work, int max_seq) {
@@ -160,18 +161,20 @@ void assertToSort(CUdeviceptr &out,CUdeviceptr &in, std::vector<WorkUnit>& work,
 void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     quick::Device device;
 
-    int start_pivot = pivot(in, size);
+    int start_pivot = pivot(in, size, device);
     std::vector<WorkUnit> work = {WorkUnit(DevArray(0, size), start_pivot)};
     std::vector<WorkUnit> done;
 
-    int max_seq = MAX_SEQ;
+//    int max_seq = MAX_SEQ;
 
 //    print_Devtab(in, size, size,0, "IN");
 
 //    int L =0, R=size-1;
-    int block_size = ceil_div(size, max_seq); //WTF??? block_size w innym miejscy niż w kodzie, no ale do kurwy nędzy ten max_seq to jakaś żenada
+    int block_size = OTHER_SORT_LIM *2;
+    int max_seq = ceil_div(size, block_size);
+//        ceil_div(size, max_seq); //WTF??? block_size w innym miejscy niż w kodzie, no ale do kurwy nędzy ten max_seq to jakaś żenada
 //        sum_seq_size(work, max_seq);
-    while (!work.empty() && work.size() + done.size() < max_seq) {
+    while (!work.empty() && work.size() + done.size() <= max_seq) {
 
 //        PRINT1("block size %d %d\n", block_size,  size / max_seq);
 //

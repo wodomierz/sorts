@@ -123,7 +123,9 @@ void alt_sort(DevArray array, int *out) {
 //    }
 }
 
-__device__
+
+
+__device__ __forceinline__
 int median(int *array, int start, int end) {
     int tab[3] = {array[start], array[(start + end -1)/2], array[end -1]};
     //improve
@@ -137,6 +139,11 @@ int median(int *array, int start, int end) {
         }
     }
     return tab[1];
+}
+
+__global__
+void pivot(int* array, int size, int* result) {
+    *result = median(array, 0, size);
 }
 
 __device__ __forceinline__

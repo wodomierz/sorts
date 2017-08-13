@@ -1,4 +1,3 @@
-
 #include "quick_sort_device.h"
 #include "../utils/utils.h"
 
@@ -8,6 +7,7 @@ namespace quick {
         manageResult(cuModuleLoad(&cuModule, "quick-sort/quick_sort.ptx"), "cannot load module");
         manageResult(cuModuleGetFunction(&gqsortDev, cuModule, "gqsort"), "cannot load function");
         manageResult(cuModuleGetFunction(&lqsortDev, cuModule, "lqsort"), "cannot load function");
+        manageResult(cuModuleGetFunction(&pivotDev, cuModule, "pivot"), "cannot load function");
     }
 
     void Device::gqsort(Block *blocks, int block_count, CUdeviceptr in, CUdeviceptr out, WorkUnit *news) {
@@ -51,5 +51,18 @@ namespace quick {
 //        out = *ptr_out;
 //        cuMemFreeHost(ptr_in);
 //        cuMemFreeHost(ptr_out);
+    }
+
+    int Device::pivot(CUdeviceptr to_sort, int size) {
+        int result;
+        int* pivot = cuMemAllocH<int>(1);
+        void *args[]{&to_sort, &size, &pivot};
+        manageResult(cuLaunchKernel(pivotDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
+                     "running");
+        cuCtxSynchronize();
+        result = *pivot;
+        PRINT1("PIVOT %d\n", result);
+        cuMemFreeHost(pivot);
+        return result;
     }
 }
