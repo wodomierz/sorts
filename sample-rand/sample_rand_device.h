@@ -25,6 +25,9 @@ namespace sample_rand {
 
         CUfunction chujowy_sortDev;
 
+
+        CUfunction sampleDev;
+
         Device();
 
         void localPrefSums(sample_rand::Context &context, sample_rand::PrefsumContext &prefsumMemory);
@@ -40,6 +43,8 @@ namespace sample_rand {
         void counters(sample_rand::Context &memory);
 
         void odd_even(sample_rand::Context &memory);
+
+        void sample_dev(sample_rand::Context &memory);
 
     };
 }

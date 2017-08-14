@@ -22,6 +22,8 @@ namespace sample_rand {
 
         manageResult(cuModuleGetFunction(&cuOdeven, cuModule, "odd_even"), "cannot load function");
 
+        manageResult(cuModuleGetFunction(&sampleDev, cuModule, "sample"), "cannot load function");
+
     }
 
     void Device::scatter(sample_rand::Context &memory) {
@@ -78,6 +80,16 @@ namespace sample_rand {
         for (int j = 1; j <= prefsumMemory.baseData.number_of_blocks; ++j) {
             prefsumMemory.batchSums[j] += prefsumMemory.batchSums[j - 1];
         }
+    }
+
+    void Device::sample_dev(sample_rand::Context &memory) {
+        int plus = rand()%10000000;
+        int seed= rand()%10000000;
+        void *args[] = {&memory.deviceToSort, &memory.baseData.size,&seed, &plus, &memory.bstPtr};
+        manageResult(cuLaunchKernel(prefsumDev1, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0),
+                     "sample");
+        cuCtxSynchronize();
+
     }
 
 

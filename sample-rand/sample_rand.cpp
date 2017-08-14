@@ -17,6 +17,8 @@ using namespace std;
 
 
 void create_search_tree(sample_rand::Context &memory) {
+
+
     //WORKS ONLY IF memory.size > S_SIZE
     int *tree = cuAllocHostInts(S_SIZE);
     int *sample = cuAllocHostInts(S_SIZE);
@@ -57,7 +59,7 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
 //int counter = 0;
 
 void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
-    create_search_tree(memory);
+    device.sample_dev(memory);
 
     device.counters(memory);
 
