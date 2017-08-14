@@ -5,7 +5,7 @@
 #include <cassert>
 #include "sample_rand_device.h"
 #include "sample_rand.h"
-
+#include "../quick-sort/quick_debug.h"
 namespace sample_rand {
 
     Device::Device() {
@@ -52,7 +52,7 @@ namespace sample_rand {
 
     void Device::chujowy(sample_rand::Context &memory) {
 //    assert(false);
-        assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
+//        assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
         manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                      "running");
@@ -83,12 +83,20 @@ namespace sample_rand {
     }
 
     void Device::sample_dev(sample_rand::Context &memory) {
-        int plus = rand()%10000000;
-        int seed= rand()%10000000;
+        int plus = rand()%100000;
+        int seed= rand()%100000;
         void *args[] = {&memory.deviceToSort, &memory.baseData.size,&seed, &plus, &memory.bstPtr};
-        manageResult(cuLaunchKernel(prefsumDev1, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0),
-                     "sample");
+        manageResult(cuLaunchKernel(sampleDev, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0), "sample");
         cuCtxSynchronize();
+
+        checkMem();
+        checkMem();
+        checkMem();
+        checkMem();
+        checkMem();
+        PRINT1("SIZE %d\n",memory.baseData.size);
+        print_Devtab(memory.bstPtr, S_SIZE, S_SIZE);
+
 
     }
 

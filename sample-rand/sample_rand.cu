@@ -35,6 +35,19 @@ void chujowy_sort(int *to_sort, int size) {
     }
 }
 
+__device__
+void chujowy_sort1(int *to_sort, int size) {
+    __syncthreads();
+    if (threadIdx.x ==0) {
+        for (int i = 1; i < size; ++i) {
+            for (int j = 0; j < i; ++j) {
+                min_max(to_sort, j, i, size);
+            }
+        }
+    }
+    __syncthreads();
+}
+
 
 __global__
 void odd_even(int *to_sort) {
@@ -92,13 +105,13 @@ void sample(int *tab, int size, int seed, int plus, int *bst) {
 
     __syncthreads();
 
-    chujowy_sort(to_sort, SAMPLE_BLOCK);
+    chujowy_sort1(to_sort, SAMPLE_BLOCK);
     __syncthreads();
     if (threadIdx.x ==0) {
         int iteratr = 0;
         for (int i = 2; i <= S_SIZE; i *= 2) {
             for (int j = 1; j < i; j += 2) {
-                bst[iteratr++] = to_sort[j * (S_SIZE / i) - 1];
+                bst[iteratr++] = to_sort[(j * (S_SIZE / i) - 1)*AS];
             }
         }
         bst[S_SIZE - 1] = 0;

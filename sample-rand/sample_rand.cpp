@@ -59,6 +59,8 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
 //int counter = 0;
 
 void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
+
+//    create_search_tree(memory);
     device.sample_dev(memory);
 
     device.counters(memory);
@@ -80,15 +82,15 @@ void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
 //        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.baseData.size);
         if (size > 0) {
             sample_rand::Context mem(memory, i);
-            assertPrintable(([i, memory, mem] {
-                PRINT1("%d %d %d %d %d\n",
-                       i,
-                       memory.sample_offsets[i],
-                       memory.sample_offsets[i + 1],
-                       memory.baseData.size,
-                       mem.baseData.size);
-            }),
-                            memory.baseData.size != mem.baseData.size);
+//            assertPrintable(([i, memory, mem] {
+//                PRINT1("%d %d %d %d %d\n",
+//                       i,
+//                       memory.sample_offsets[i],
+//                       memory.sample_offsets[i + 1],
+//                       memory.baseData.size,
+//                       mem.baseData.size);
+//            }),
+//                            memory.baseData.size != mem.baseData.size);
             //could be more efficient
             if (mem.baseData.size > M) {
                 sampleRand(device, mem);

@@ -222,23 +222,23 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
- quick_sort(tab, size);
-//    sampleRand(tab, size);
+// quick_sort(tab, size);
+    sampleRand(tab, size);
 }
 
 void test_correctness() {
     srand(time(NULL));
 
-//    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
+    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
 //    testg(bitonic_sort1 , 1024*1024);
-    int z =30;
-    while(--z) {
-        int max = 600*1024*1024;
-        int min = 300000000;
-        int i =  rand()%(max-min + 1) + min;
-
-        testg(bitonic_sort1 , i);
-    }
+//    int z =30;
+//    while(--z) {
+//        int max = 600*1024*1024;
+//        int min = 300000000;
+//        int i =  rand()%(max-min + 1) + min;
+//
+//        testg(bitonic_sort1 , i);
+//    }
 //    testg(bitonic_sort1, 123);
 //    testg(bitonic_sort1, 1024*234);
 //    testg(bitonic_sort1 , 1024*1024);
