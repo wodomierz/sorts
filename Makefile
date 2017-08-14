@@ -30,7 +30,7 @@ sample-rand/sample_rand.ptx quick-sort/quick_sort.ptx
 OBJS =  main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o \
 radix/radixsort.cpp.o sample-rand/sample_rand.cpp.o \
 sample-rand/sample_rand_context.cpp.o sample-rand/sample_rand_device.cpp.o sample-rand/PrefsumContext.cpp.o \
-quick-sort/quick_sort_device.cpp.o quick-sort/quick_sort.cpp.o quick-sort/quick_shared.cpp.o
+quick-sort/quick_sort_device.cpp.o quick-sort/quick_sort.cpp.o quick-sort/quick_shared.cpp.o quick-sort/quick_debug.cpp.o
 
 TARGET = solution.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)

@@ -233,8 +233,8 @@ void test_correctness() {
 //    testg(bitonic_sort1 , 1024*1024);
     int z =30;
     while(--z) {
-        int max = 500*1024*1024;
-        int min = 100000000;
+        int max = 600*1024*1024;
+        int min = 300000000;
         int i =  rand()%(max-min + 1) + min;
 
         testg(bitonic_sort1 , i);

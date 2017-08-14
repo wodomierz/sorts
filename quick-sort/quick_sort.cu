@@ -259,7 +259,6 @@ void altOrPush(
     int *out,
     int* tab) {
     if (devArray.end - devArray.start <= OTHER_SORT_LIM) {
-//        if (threadIdx.x ==0) alt_sort(devArray, out);
         bitonic_merge2(out + devArray.start, devArray.end - devArray.start, tab);
     } else {
         if (threadIdx.x ==0) work_stack[++stackIndex] = devArray;
@@ -285,34 +284,11 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
     __shared__ int tab[QUICK_THREADS_IN_BLOCK *2];
     __shared__ DevArray long_seq, short_seq;
 
-    int lock = -3;
-    int debind = 0;
-
-
-//        s[QUICK_THREADS_IN_BLOCK];
-    //???
-    //maybe pointer???
-//    thrust::device_vector<DevArray> work_stack;
-
     int *out = out_h;
     int *in = in_h;
     int i, l_from, g_from;
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-
-//    __syncthreads();
-//    atomicExch(debugger, 35);
-//    if (threadIdx.x == 0) {
-//        debugger[3] =7;
-//        if (atomicExch(debugger + 0, blockId) == -2) {
-//            debind =1;
-//            lock = blockId;
-//            debugger[debind++] = -999;
-//        }
-//
-//
-//    }
-//    __syncthreads();
 
     if (threadIdx.x == 0) {
         workStcIndex = 0;
@@ -320,11 +296,9 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
         gstart = workStack[0].start;
         gend = workStack[0].end;
 
-//        work_stack.push_back(seqs[blockId]);
     }
     __syncthreads();
     while (workStcIndex >= 0) {
-        //WTF???
         __syncthreads();
         if (threadIdx.x == 0) {
             DevArray dev = workStack[workStcIndex--];
@@ -334,16 +308,9 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
             gt[QUICK_THREADS_IN_BLOCK] = 0;
             pivot = median(in, start, end);
         }
-//        __syncthreads();
-        // how to work_stack.back().value_type();
-
-//        if(threadIdx.x ==0) {
-
-//        }
         lt[threadIdx.x] = 0;
         gt[threadIdx.x] = 0;
         __syncthreads();
-        //synch?
         i = start + threadIdx.x;
         for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             if (in[i] < pivot) {
@@ -353,14 +320,12 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
                 gt[threadIdx.x]++;
             }
         }
-//        __syncthreads();
         pref_sum(shared, lt); //exclusive
         __syncthreads();
         pref_sum(shared, gt);
         __syncthreads();
         l_from = start + lt[threadIdx.x];
         g_from = end - gt[threadIdx.x + 1];
-//        __syncthreads();
         i = start + threadIdx.x;
         for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             if (in[i] < pivot) {
@@ -370,25 +335,16 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
                 out[g_from++] = in[i];
             }
         }
-//        __syncthreads();
         i = start + lt[QUICK_THREADS_IN_BLOCK] + threadIdx.x;
         for (; i < end - gt[QUICK_THREADS_IN_BLOCK]; i += QUICK_THREADS_IN_BLOCK) {
             out[i] = pivot;
-//            in[i] = pivot;
         }
-//        __syncthreads();
         if (threadIdx.x == 0) {
-
             int lt_sum = lt[QUICK_THREADS_IN_BLOCK];
             int gt_sum = gt[QUICK_THREADS_IN_BLOCK];
             long_seq = DevArray(start, start + lt_sum);
             short_seq = DevArray(end - gt_sum, end);
-            if (start + lt_sum > end - gt_sum) {
-                workStcIndex = -10000;
-            }
-
             if (lt_sum <= gt_sum) {
-                //?
                 swap(long_seq, short_seq);
             }
         }
@@ -404,16 +360,7 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
         for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
             in[i] = out[i];
         }
-//        __syncthreads();
     }
-//    __syncthreads();
-//    i = gstart + threadIdx.x;
-//    for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
-//        out_h[i] = in[i];
-//            out[i];
-//        in_h[i] = -20;
-//            in[i];
-//    }
 }
 
 }
