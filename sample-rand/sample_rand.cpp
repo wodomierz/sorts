@@ -97,28 +97,28 @@ void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
             } else {
                 device.chujowy(mem);
             }
-            if (memory.baseData.size > 5000 && mem.baseData.size == 1) {
-                print_Devtab(
-                        memory.blockPrefsums,
-                        memory.prefsumSize(),
-                        memory.prefsumSize(),
-                        1,
-                        "PREFSUM JUMPS",
-                        indexedPrint,
-                        [](int i, int *tab) -> bool { return (tab[i] > tab[i - 1]); }
-                );
-                print_Devtab(
-                        memory.bstPtr,
-                        S_SIZE,
-                        S_SIZE,
-                        1,
-                        "BST",
-                        indexedPrint
-                );
-                print_Devtab(memory.deviceToSort, memory.baseData.size, 512);
-                PRINT1("\nWAT? %d %d %d %d\n", i, memory.baseData.size, memory.sample_offsets[i], memory.sample_offsets[i + 1]);
-                assert(false);
-            }
+//            if (memory.baseData.size > 5000 && mem.baseData.size == 1) {
+//                print_Devtab(
+//                        memory.blockPrefsums,
+//                        memory.prefsumSize(),
+//                        memory.prefsumSize(),
+//                        1,
+//                        "PREFSUM JUMPS",
+//                        indexedPrint,
+//                        [](int i, int *tab) -> bool { return (tab[i] > tab[i - 1]); }
+//                );
+//                print_Devtab(
+//                        memory.bstPtr,
+//                        S_SIZE,
+//                        S_SIZE,
+//                        1,
+//                        "BST",
+//                        indexedPrint
+//                );
+//                print_Devtab(memory.deviceToSort, memory.baseData.size, 512);
+//                PRINT1("\nWAT? %d %d %d %d\n", i, memory.baseData.size, memory.sample_offsets[i], memory.sample_offsets[i + 1]);
+//                assert(false);
+//            }
         }
 
     }

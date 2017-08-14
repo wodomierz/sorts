@@ -89,13 +89,13 @@ namespace sample_rand {
         manageResult(cuLaunchKernel(sampleDev, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0), "sample");
         cuCtxSynchronize();
 
-        checkMem();
-        checkMem();
-        checkMem();
-        checkMem();
-        checkMem();
-        PRINT1("SIZE %d\n",memory.baseData.size);
-        print_Devtab(memory.bstPtr, S_SIZE, S_SIZE);
+//        checkMem();
+//        checkMem();
+//        checkMem();
+//        checkMem();
+//        checkMem();
+//        PRINT1("SIZE %d\n",memory.baseData.size);
+//        print_Devtab(memory.bstPtr, S_SIZE, S_SIZE);
 
 
     }
