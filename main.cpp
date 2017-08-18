@@ -232,7 +232,6 @@ void test_correctness() {
     testg(bitonic_sort1, 1024*1024*2);
     testg(bitonic_sort1, 1024*1024*4);
     testg(bitonic_sort1, 1024*1024*8);
-    testg(bitonic_sort1, 1024*1024*16);
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);
 //    test_big(bitonic_sort1);
