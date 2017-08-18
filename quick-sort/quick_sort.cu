@@ -3,7 +3,6 @@
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 #include "quick_shared.h"
-#include <thrust/device_vector.h>
 #include "../bitonic/bitonic_sort.cuh"
 
 

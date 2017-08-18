@@ -1,4 +1,3 @@
-//#include <cstdio>
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 #include "bitonic_sort.cuh"
