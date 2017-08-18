@@ -11,7 +11,7 @@ static int THREADS_IN_BLOCK = 1024;
 
 using namespace std;
 
-double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim, int z_dim) {
+double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
 
     CUfunction bitonic_merge2;
     manageResult(cuModuleGetFunction(&bitonic_merge2, cuModule, "bitonic_merge2" ) , "cannot load function");
@@ -30,11 +30,11 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
     for (int d_half_traingle_p = 11; d_half_traingle_p <= power_n -1; d_half_traingle_p++) {
         void* args1[3] = { &deviceToSort, &d_half_traingle_p, &size};
 
-        manageResult(cuLaunchKernel(bitonic_triangle_merge, x_dim, y_dim, z_dim, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),"running");
+        manageResult(cuLaunchKernel(bitonic_triangle_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),"running");
         cuCtxSynchronize();
         for (int d_p = d_half_traingle_p -1; d_p >= 0; d_p--) {
             void* args2[3] = { &deviceToSort, &d_p, &size};
-            manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, z_dim, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),"running");
+            manageResult(cuLaunchKernel(bitonic_merge, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),"running");
             cuCtxSynchronize();
         }
     }
@@ -62,14 +62,9 @@ double bitonic_sort(int* to_sort, int size, bool opt) {
     for (n = 1, power_n=0; n < size; n <<= 1, power_n++);
     int half_size = n/2;
     int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
-    int max_grid_dim_x = 32768;
+    int max_grid_dim_x = MAX_GRID_DIM;
     int x_dim = numberOfBlocks > max_grid_dim_x ? max_grid_dim_x : numberOfBlocks;
     int y_dim = (numberOfBlocks + x_dim - 1) / x_dim;
-    int z_dim = 1;
-    if (y_dim > max_grid_dim_x) {
-        z_dim = (y_dim + max_grid_dim_x -1) / max_grid_dim_x;
-        y_dim = max_grid_dim_x;
-    }
 
     cuMemHostRegister((void*) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
@@ -77,8 +72,7 @@ double bitonic_sort(int* to_sort, int size, bool opt) {
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
     double result;
-    result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim, z_dim);
-//     else result = run(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
+    result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
 
 
     cuMemcpyDtoH((void*)to_sort, deviceToSort, size * sizeof(int));

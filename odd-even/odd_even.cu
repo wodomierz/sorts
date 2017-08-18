@@ -1,3 +1,5 @@
+//#include "../utils/kernel_commons.cuh"
+
 extern "C" {
 
 __device__
@@ -14,7 +16,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 		atomicExch(tab + for_max, min);
 		atomicExch(tab + for_min, max);
 	}
-};
+} ;
 
 __global__
 void odd_even(int *to_sort) {

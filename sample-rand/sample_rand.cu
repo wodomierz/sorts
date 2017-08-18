@@ -1,28 +1,17 @@
 #include "sample_rand.h"
 
+
+
 #include "../utils/cuda_device.h"
+#include "../utils/kernel_commons.cuh"
 
 extern "C" {
+
 
 __device__ __forceinline__
 int place(int size, int seed, int plus, int i) {
     return (i * seed + plus) % size;
 }
-
-
-
-__device__
-void min_max(int *tab, int for_min, int for_max, int size) {
-    if (for_min >= size || for_max >= size) {
-        return;
-    }
-    int min = tab[for_min];
-    int max = tab[for_max];
-    if (max < min) {
-        atomicExch(tab + for_max, min);
-        atomicExch(tab + for_min, max);
-    }
-} ;
 
 
 __global__

@@ -6,6 +6,7 @@
 #include "sample_rand_device.h"
 #include "sample_rand.h"
 #include "../quick-sort/quick_debug.h"
+
 namespace sample_rand {
 
     Device::Device() {
@@ -27,18 +28,22 @@ namespace sample_rand {
     }
 
     void Device::scatter(sample_rand::Context &memory) {
-        BaseData& baseData = memory.baseData;
-        void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums, &baseData.number_of_blocks,&memory.baseData.size};
-        manageResult(cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args2, 0),
-                     "running");
+        BaseData &baseData = memory.baseData;
+        void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums,
+                      &baseData.number_of_blocks, &memory.baseData.size};
+        manageResult(
+            cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args2, 0),
+            "running");
         cuCtxSynchronize();
     }
 
     void Device::counters(sample_rand::Context &memory) {
-        BaseData& baseData = memory.baseData;
-        void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks, &memory.baseData.size};
-        manageResult(cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args1, 0),
-                     "running");
+        BaseData &baseData = memory.baseData;
+        void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks,
+                         &memory.baseData.size};
+        manageResult(
+            cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args1, 0),
+            "running");
         cuCtxSynchronize();
     }
 
@@ -51,8 +56,6 @@ namespace sample_rand {
     }
 
     void Device::chujowy(sample_rand::Context &memory) {
-//    assert(false);
-//        assertPrintable([memory]{PRINT1("%d %d\n", memory.baseData.size, M);}, memory.baseData.size == BLOCK_SIZE);
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
         manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                      "running");
@@ -62,15 +65,20 @@ namespace sample_rand {
     void Device::localPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory) {
         void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &prefsumMemory.baseData.size};
 
-        manageResult(cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
-                     "pref");
+        manageResult(
+            cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS,
+                           1, 1, 0, 0, args, 0),
+            "pref");
         cuCtxSynchronize();
     }
 
     void Device::globalPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory) {
-        void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks, &memory.sample_offsets,&prefsumMemory.baseData.size};
-        manageResult(cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS, 1, 1, 0, 0, args, 0),
-                     "pref1");
+        void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks,
+                        &memory.sample_offsets, &prefsumMemory.baseData.size};
+        manageResult(
+            cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS,
+                           1, 1, 0, 0, args, 0),
+            "pref1");
         cuCtxSynchronize();
     }
 
@@ -83,21 +91,11 @@ namespace sample_rand {
     }
 
     void Device::sample_dev(sample_rand::Context &memory) {
-        int plus = rand()%100000;
-        int seed= rand()%100000;
-        void *args[] = {&memory.deviceToSort, &memory.baseData.size,&seed, &plus, &memory.bstPtr};
+        int plus = rand() % 100000;
+        int seed = rand() % 100000;
+        void *args[] = {&memory.deviceToSort, &memory.baseData.size, &seed, &plus, &memory.bstPtr};
         manageResult(cuLaunchKernel(sampleDev, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0), "sample");
         cuCtxSynchronize();
-
-//        checkMem();
-//        checkMem();
-//        checkMem();
-//        checkMem();
-//        checkMem();
-//        PRINT1("SIZE %d\n",memory.baseData.size);
-//        print_Devtab(memory.bstPtr, S_SIZE, S_SIZE);
-
-
     }
 
 

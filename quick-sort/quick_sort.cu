@@ -1,71 +1,48 @@
 
 #include "quick_sort.h"
 #include "../utils/cuda_device.h"
+#include "../utils/kernel_commons.cuh"
 #include "quick_shared.h"
 #include <thrust/device_vector.h>
+#include "../bitonic/bitonic_sort.cuh"
 
-
-template <typename T>
-__device__ __forceinline__
-void swap(T& a, T&b) {
-    T c  = a;
-    a = b;
-    b = c;
-}
 
 extern "C" {
 
 
-__device__ __forceinline__
-void min_max(int *tab, int for_min, int for_max, int size) {
-    if (for_min >= size || for_max >= size) {
-        return;
-    }
-    int min = tab[for_min];
-    int max = tab[for_max];
-    if (max < min) {
-        atomicExch(tab + for_max, min);
-        atomicExch(tab + for_min, max);
-    }
-} ;
 
 
-__device__ __forceinline__
-int gerOrInf(int *to_sort, int index, int size) {
-    return index < size ? to_sort[index] : 2147483647; //max int
-}
-
-__device__ __forceinline__
-void bitonic_merge2(int *to_sort, int size, int*tab) {
-
-    int threadId = threadIdx.x;
-
-    tab[threadId] = gerOrInf(to_sort, threadId, size);
-    tab[threadId + QUICK_THREADS_IN_BLOCK] = gerOrInf(to_sort, threadId + QUICK_THREADS_IN_BLOCK, size);
-
-    __syncthreads();
-
-    for (int d_triangle = 2, d_half_traingle_p = 0;
-         d_half_traingle_p <= QUICKTHREADS_POW;
-         d_half_traingle_p++, d_triangle<<=1) {
-
-        int wireThid = threadId + ((threadId >> d_half_traingle_p) << d_half_traingle_p);
-
-        int local_thid = wireThid & (d_triangle-1);
-        int opposite = wireThid - local_thid + d_triangle - 1 - local_thid;
-
-        min_max(tab, wireThid, opposite, QUICK_THREADS_IN_BLOCK*2);
-        __syncthreads();
-        for (int d_power = d_half_traingle_p -1; d_power >= 0; d_power--) {
-            int wireThid = threadId + ((threadId >> d_power) << d_power);
-            int opposite = wireThid + (1 << d_power);
-            min_max(tab, wireThid, opposite, QUICK_THREADS_IN_BLOCK*2);
-            __syncthreads();
-        }
-    }
-    if ( threadId < size) to_sort[threadId] = tab[threadId];
-    if (threadId + QUICK_THREADS_IN_BLOCK < size) to_sort[threadId + QUICK_THREADS_IN_BLOCK] = tab[threadId + QUICK_THREADS_IN_BLOCK];
-}
+//__device__ __forceinline__
+//void bitonic_merge2(int *to_sort, int size, int*tab) {
+//
+//    int threadId = threadIdx.x;
+//
+//    tab[threadId] = gerOrInf(to_sort, threadId, size);
+//    tab[threadId + QUICK_THREADS_IN_BLOCK] = gerOrInf(to_sort, threadId + QUICK_THREADS_IN_BLOCK, size);
+//
+//    __syncthreads();
+//
+//    for (int d_triangle = 2, d_half_traingle_p = 0;
+//         d_half_traingle_p <= QUICKTHREADS_POW;
+//         d_half_traingle_p++, d_triangle<<=1) {
+//
+//        int wireThid = threadId + ((threadId >> d_half_traingle_p) << d_half_traingle_p);
+//
+//        int local_thid = wireThid & (d_triangle-1);
+//        int opposite = wireThid - local_thid + d_triangle - 1 - local_thid;
+//
+//        min_max(tab, wireThid, opposite, QUICK_THREADS_IN_BLOCK*2);
+//        __syncthreads();
+//        for (int d_power = d_half_traingle_p -1; d_power >= 0; d_power--) {
+//            int wireThid = threadId + ((threadId >> d_power) << d_power);
+//            int opposite = wireThid + (1 << d_power);
+//            min_max(tab, wireThid, opposite, QUICK_THREADS_IN_BLOCK*2);
+//            __syncthreads();
+//        }
+//    }
+//    if ( threadId < size) to_sort[threadId] = tab[threadId];
+//    if (threadId + QUICK_THREADS_IN_BLOCK < size) to_sort[threadId + QUICK_THREADS_IN_BLOCK] = tab[threadId + QUICK_THREADS_IN_BLOCK];
+//}
 
 
 __device__ __forceinline__
@@ -259,7 +236,7 @@ void altOrPush(
     int *out,
     int* tab) {
     if (devArray.end - devArray.start <= OTHER_SORT_LIM) {
-        bitonic_merge2(out + devArray.start, devArray.end - devArray.start, tab);
+        bitonic_merge_device<QUICKTHREADS_POW>(out + devArray.start, devArray.end - devArray.start, tab);
     } else {
         if (threadIdx.x ==0) work_stack[++stackIndex] = devArray;
     }
