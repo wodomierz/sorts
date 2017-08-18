@@ -1,5 +1,5 @@
 #include <cstdio>
-
+#include "../utils/cuda_device.h"
 
 extern "C" {
 __global__

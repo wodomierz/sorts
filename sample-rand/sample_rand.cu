@@ -14,15 +14,6 @@ int place(int size, int seed, int plus, int i) {
 }
 
 
-__global__
-void chujowy_sort(int *to_sort, int size) {
-    for (int i = 1; i < size; ++i) {
-        for (int j = 0; j < i; ++j) {
-            min_max(to_sort, j, i, size);
-            __syncthreads();
-        }
-    }
-}
 
 __device__
 void chujowy_sort1(int *to_sort, int size) {
@@ -37,50 +28,11 @@ void chujowy_sort1(int *to_sort, int size) {
     __syncthreads();
 }
 
-
 __global__
-void odd_even(int *to_sort) {
-    //TODO you MUST check size
-    __shared__ int tab[THREADS_PER_BLOCK * 2];
-
-    int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    int thid = threadIdx.x;
-    int gthid = x + y * gridDim.x * blockDim.x * 2;
-    //TODO check *2 here
-
-    tab[thid] = to_sort[gthid];
-    tab[thid + THREADS_PER_BLOCK] = to_sort[gthid + THREADS_PER_BLOCK];
-    __syncthreads();
-
-    for (int pow__half_batch = 0, half_batch = 1;
-         pow__half_batch <= 10;
-         pow__half_batch++, half_batch <<= 1) {
-
-        int wireThid = thid + ((thid >> pow__half_batch) << pow__half_batch);
-        int opposite = wireThid + half_batch;
-        min_max(tab, wireThid, opposite, THREADS_PER_BLOCK * 2);
-        __syncthreads();
-        for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
-
-            int d = 1 << d_power;
-
-            int period = half_batch - d;
-
-            int wire_id = thid + (((thid >> d_power) + ((thid / period) << 1) + 1) << d_power);
-            int opposite = wire_id + d;
-            min_max(tab, wire_id, opposite, THREADS_PER_BLOCK * 2);
-
-            __syncthreads();
-        }
-
-    }
-
-    to_sort[gthid] = tab[thid];
-    to_sort[gthid + THREADS_PER_BLOCK] = tab[thid + THREADS_PER_BLOCK];
-
+void chujowy_sort(int *to_sort, int size) {
+    chujowy_sort1(to_sort, size);
 }
+
 
 __global__
 void sample(int *tab, int size, int seed, int plus, int *bst) {
@@ -157,8 +109,6 @@ void prefsum(int *localPrefsums, int *maxPrefSums, int size) {
 
     shared[0][threadIdx.x] = getOrZero(localPrefsums, thid, size);
     shared[0][threadIdx.x + PREFSUM_THREADS] = getOrZero(localPrefsums, thid + PREFSUM_THREADS, size);
-//    shared[0][threadIdx.x] = localPrefsums[thid];
-//    shared[0][threadIdx.x + PREFSUM_THREADS] = localPrefsums[thid + PREFSUM_THREADS];
     __syncthreads();
 
     bool from = 1;

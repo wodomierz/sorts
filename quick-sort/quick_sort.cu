@@ -15,9 +15,6 @@ void alt_sort(DevArray array, int *out) {
             min_max(out,  j, i, array.end);
         }
     }
-//    for (int i = array.start; i < array.end; ++i) {
-//        out[i] = in[i];
-//    }
 }
 
 
@@ -65,7 +62,6 @@ void pref_sum(int shared[][QUICK_THREADS_IN_BLOCK], int *array) {
     if (threadIdx.x == 0) {
         array[0] = 0;
     }
-//    __syncthreads();
 }
 
 __global__
