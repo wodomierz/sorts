@@ -1,5 +1,5 @@
 #include "sample_rand.h"
-
+#include "../prefsum/prefsum.cuh"
 
 
 #include "../utils/cuda_device.h"
@@ -15,22 +15,10 @@ int place(int size, int seed, int plus, int i) {
 
 
 
-__device__
-void chujowy_sort1(int *to_sort, int size) {
-    __syncthreads();
-    if (threadIdx.x ==0) {
-        for (int i = 1; i < size; ++i) {
-            for (int j = 0; j < i; ++j) {
-                min_max(to_sort, j, i, size);
-            }
-        }
-    }
-    __syncthreads();
-}
 
 __global__
 void chujowy_sort(int *to_sort, int size) {
-    chujowy_sort1(to_sort, size);
+    chujowy_sort_dev(to_sort, size);
 }
 
 
@@ -46,7 +34,7 @@ void sample(int *tab, int size, int seed, int plus, int *bst) {
 
     __syncthreads();
 
-    chujowy_sort1(to_sort, SAMPLE_BLOCK);
+    chujowy_sort_dev(to_sort, SAMPLE_BLOCK);
     __syncthreads();
     if (threadIdx.x ==0) {
         int iteratr = 0;
@@ -92,13 +80,14 @@ void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_blocks, int *s
 
 }
 
-__device__
+__device__ __forceinline__
 int getOrZero(int *tab, int i, int size) {
     return i < size ? tab[i] : 0;
 }
+
 __global__
 void prefsum(int *localPrefsums, int *maxPrefSums, int size) {
-    __shared__ int shared[2][PREFSUM_THREADS * 2 + 1];
+    __shared__ int shared[2][PREFSUM_THREADS * 2];
 
     int x = blockIdx.x * blockDim.x * 2 + threadIdx.x;
     int y = blockIdx.y + threadIdx.y;
@@ -111,24 +100,9 @@ void prefsum(int *localPrefsums, int *maxPrefSums, int size) {
     shared[0][threadIdx.x + PREFSUM_THREADS] = getOrZero(localPrefsums, thid + PREFSUM_THREADS, size);
     __syncthreads();
 
-    bool from = 1;
     bool to = 0;
-    for (int d = 1; d < PREFSUM_THREADS * 2; d <<= 1) {
-        from = !from;
-        to = !to;
-        if (2 * threadIdx.x >= d) {
-            shared[to][2 * threadIdx.x] = shared[from][2 * threadIdx.x - d] + shared[from][2 * threadIdx.x];
-        } else {
-            shared[to][2 * threadIdx.x] = shared[from][2 * threadIdx.x];
-        }
 
-        if (2 * threadIdx.x + 1 >= d) {
-            shared[to][2 * threadIdx.x + 1] = shared[from][2 * threadIdx.x + 1 - d] + shared[from][2 * threadIdx.x + 1];
-        } else {
-            shared[to][2 * threadIdx.x + 1] = shared[from][2 * threadIdx.x + 1];
-        }
-        __syncthreads();
-    }
+    prefixSumDev<PREFSUM_THREADS, 2>(shared, to);
 
     if (thid < size) localPrefsums[thid] = shared[to][threadIdx.x];
     if (thid + PREFSUM_THREADS < size)

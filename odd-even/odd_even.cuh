@@ -1,3 +1,6 @@
+#ifndef SORTS_ODD_EVEN_CUH
+#define SORTS_ODD_EVEN_CUH
+
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 
@@ -40,3 +43,5 @@ void odd_even_device(int *to_sort, int size, int tab[]) {
     if (thid + THREADS < size) to_sort[thid + THREADS] = tab[thid + THREADS];
 
 }
+
+#endif //SORTS_ODD_EVEN_CUH

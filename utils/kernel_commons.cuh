@@ -18,6 +18,20 @@ void min_max(int *tab, int for_min, int for_max, int size) {
     }
 };
 
+
+__device__ __forceinline__
+void chujowy_sort_dev(int *to_sort, int size) {
+    __syncthreads();
+    if (threadIdx.x ==0) {
+        for (int i = 1; i < size; ++i) {
+            for (int j = 0; j < i; ++j) {
+                min_max(to_sort, j, i, size);
+            }
+        }
+    }
+    __syncthreads();
+}
+
 __device__ __forceinline__
 int gerOrInf(int *to_sort, int index, int size) {
     return index < size ? to_sort[index] : 2147483647; //max int

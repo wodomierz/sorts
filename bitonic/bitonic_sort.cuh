@@ -1,3 +1,6 @@
+#ifndef SORTS_BITONIC_SORT_CUH
+#define SORTS_BITONIC_SORT_CUH
+
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 
@@ -35,3 +38,5 @@ void bitonic_merge_device(int *to_sort, int size, int tab[]) {
     if ( threadId < size) to_sort[threadId] = tab[threadId];
     if (threadId + THREADS < size) to_sort[threadId + THREADS] = tab[threadId + THREADS];
 }
+
+#endif //SORTS_BITONIC_SORT_CUH

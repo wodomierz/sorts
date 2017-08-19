@@ -1,6 +1,6 @@
-#if !defined(ODD_EVEN_SORT_H)
-#define ODD_EVEN_SORT_H 1
+#ifndef SORTS_ODD_EVEN_H
+#define SORTS_ODD_EVEN_H
 
 double odd_even(int*, int, bool);
 
-#endif
+#endif //SORTS_ODD_EVEN_H

@@ -10,11 +10,12 @@ namespace quick {
         manageResult(cuModuleGetFunction(&pivotDev, cuModule, "pivot"), "cannot load function");
     }
 
+
     void Device::gqsort(Block *blocks, int block_count, CUdeviceptr in, CUdeviceptr out, WorkUnit *news) {
         int x_dim = block_count > MAX_GRID_DIM ? MAX_GRID_DIM : block_count;
         int y_dim = ceil_div(block_count, x_dim);
         void *args[]{&blocks, &in, &out, &news};
-        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim, 1, QUICK_THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),
+        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim, 1, 1 << QUICKTHREADS_POW, 1, 1, 0, 0, args, 0),
                      "running");
         cuCtxSynchronize();
     }
@@ -22,10 +23,10 @@ namespace quick {
     void Device::lqsort(DevArray *seqs, int seqs_count, CUdeviceptr &in, CUdeviceptr &out) {
         int x_dim = seqs_count > MAX_GRID_DIM ? MAX_GRID_DIM : seqs_count;
         int y_dim = ceil_div(seqs_count, x_dim);
-        PRINT1("launch lqsort %d %d %d %d\n", seqs_count, QUICK_THREADS_IN_BLOCK, x_dim, y_dim);
+//        PRINT1("launch lqsort %d %d %d\n", seqs_count, x_dim, y_dim);
 
         void *args[]{&seqs, &in, &out};
-        manageResult(cuLaunchKernel(lqsortDev, x_dim, y_dim, 1, QUICK_THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),
+        manageResult(cuLaunchKernel(lqsortDev, x_dim, y_dim, 1, 1 << QUICKTHREADS_POW, 1, 1, 0, 0, args, 0),
                      "running");
         cuCtxSynchronize();
     }

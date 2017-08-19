@@ -1,3 +1,6 @@
+#ifndef SORTS_PREFSUM_CUH
+#define SORTS_PREFSUM_CUH
+
 #include "../utils/cuda_device.h"
 
 template <int THREADS, int ELEMENTS>
@@ -23,3 +26,5 @@ void prefixSumDev(int (&shared)[2][ELEMENTS*THREADS], bool& to) {
         __syncthreads();
     }
 }
+
+#endif //SORTS_PREFSUM_CUH

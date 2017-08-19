@@ -7,7 +7,8 @@
 #include <list>
 #include <algorithm>
 #include <cassert>
-int pivot(CUdeviceptr to_sort, int size,quick::Device& device) {
+
+int pivot(CUdeviceptr to_sort, int size, quick::Device &device) {
     //TODO
     return device.pivot(to_sort, size);
 }
@@ -15,16 +16,48 @@ int pivot(CUdeviceptr to_sort, int size,quick::Device& device) {
 int sum_seq_size(std::vector<WorkUnit> work, int max_seq) {
     int result = 0;
     for (WorkUnit unit : work) {
-        result += (unit.seq.end - unit.seq.start)/max_seq;
+        result += (unit.seq.end - unit.seq.start) / max_seq;
     }
     return result;
 }
 
 
+inline Block block(int seq_index, SharedVars* parents, WorkUnit& unit, int& start, int end) {
+    return {
+        {
+            {start, end},
+            unit.pivot
+        },
+        parents + seq_index
+    };
+};
+inline Block middleBlock(int seq_index, SharedVars* parents, int block_size, WorkUnit& unit, int bstart) {
+    return block(seq_index, parents, unit, bstart, bstart + block_size);
+};
+inline Block lastBlock(int seq_index, SharedVars* parents, WorkUnit& unit, int bstart) {
+    return block(seq_index, parents, unit, bstart, unit.seq.end);
+};
 
-void prepareBlocks(Block* blocks, SharedVars* parents, std::vector<WorkUnit>& work, int block_size ){
+void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &work, int block_size) {
     int total_block_index = 0;
     int seq_index = -1;
+
+    //lamda or inline?
+    auto block = [&seq_index, parents](WorkUnit& unit, int& start, int end) -> Block {
+        return {
+            {
+                {start, end},
+                unit.pivot
+            },
+            parents + seq_index
+        };
+    };
+    auto middleBlock = [block, block_size](WorkUnit& unit, int bstart) -> Block {
+        return block(unit, bstart, bstart + block_size);
+    };
+    auto lastBlock = [block](WorkUnit& unit, int bstart) -> Block {
+        return block(unit, bstart, unit.seq.end);
+    };
 
     for (WorkUnit unit : work) {
         int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
@@ -36,32 +69,9 @@ void prepareBlocks(Block* blocks, SharedVars* parents, std::vector<WorkUnit>& wo
         );
         int i;
         for (i = 0; i < block_count - 1; i++) {
-            int bstart = unit.seq.start + block_size * i;
-            blocks[total_block_index++] = {
-                {
-                    //???
-                    {bstart, bstart + block_size},
-                    unit.pivot
-                },
-                parents + seq_index
-            };
-            DevArray &array = blocks[total_block_index - 1].workUnit.seq;
-//                PRINT1("add block %d %d %d\n", array.start, array.end, total_block_index -1);
+            blocks[total_block_index++] = middleBlock(unit, unit.seq.start + block_size * i);
         }
-        blocks[total_block_index++] = {
-            {
-                {
-                    unit.seq.start + block_size * i,
-                    unit.seq.end
-                },
-                unit.pivot
-            },
-            parents +seq_index
-        };
-        DevArray &array = blocks[total_block_index - 1].workUnit.seq;
-//            PRINT1("add block %d %d\n", array.start, array.end);
-
-
+        blocks[total_block_index++] = lastBlock(unit, unit.seq.start + block_size * i);
     }
 }
 
@@ -73,9 +83,9 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     std::vector<WorkUnit> work = {WorkUnit(DevArray(0, size), start_pivot)};
     std::vector<WorkUnit> done;
 
-    int block_size = OTHER_SORT_LIM *16;
-    int max_seq = ceil_div(size, block_size);
+    int block_size = (1<< QUICKTHREADS_POW)*32;
 
+    int max_seq = ceil_div(size, block_size);
 
 
     while (!work.empty() && work.size() + done.size() <= max_seq) {
@@ -88,35 +98,28 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         //consider vector and register array of this vector??
         Block *blocks = cuMemAllocH<Block>(total_block_count);
 
-
-        SharedVars* parents = cuMemAllocH<SharedVars>(work.size());
+        SharedVars *parents = cuMemAllocH<SharedVars>(work.size());
 
         prepareBlocks(blocks, parents, work, block_size);
 
         int seq_num = work.size();
         //TODO
-        WorkUnit *news = cuMemAllocH<WorkUnit>(2*seq_num);
+        WorkUnit *news = cuMemAllocH<WorkUnit>(2 * seq_num);
 
         device.gqsort(blocks, total_block_count, in, out, news);
         work.clear();
         for (int i = 0; i < seq_num; ++i) {
-            WorkUnit &workUnitL = news[2*i];
-            WorkUnit &workUnitR = news[2*i+1];
-            if (arraySize(workUnitL.seq) <= block_size) { //diff algo
-                    done.push_back(workUnitL);
-            } else {
-                work.push_back(workUnitL);
-            }
-
-            if (arraySize(workUnitR.seq) <= block_size) { //diff algo
-                    done.push_back(workUnitR);
-            } else {
-
-                work.push_back(workUnitR);
+            for (int j = 0; j < 2; ++j) {
+                WorkUnit &workUnit = news[2 * i + j];
+                if (arraySize(workUnit.seq) <= block_size) { //diff algo
+                    done.push_back(workUnit);
+                } else {
+                    work.push_back(workUnit);
+                }
             }
         }
         //todo improve
-        cuMemcpyDtoD(in, out, size* sizeof(int));
+        cuMemcpyDtoD(in, out, size * sizeof(int));
 
         cuMemFreeHost(blocks);
         cuMemFreeHost(news);
@@ -126,7 +129,7 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     done.insert(done.end(), work.begin(), work.end());
     //improve adding to done
 
-    DevArray* doneArrays = cuMemAllocH<DevArray>(done.size());
+    DevArray *doneArrays = cuMemAllocH<DevArray>(done.size());
     for (int i = 0; i < done.size(); i++) {
         doneArrays[i] = done[i].seq;
     }
@@ -155,7 +158,7 @@ void quick_sort(int *to_sort, int size) {
     PRINT1("tutej\n");
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
-    cuMemcpyHtoD(in, to_sort, size* sizeof(int));
+    cuMemcpyHtoD(in, to_sort, size * sizeof(int));
     quick_sort_device(in, size);
     cuMemcpyDtoH(to_sort, in, sizeof(int) * size);
     cuMemFree(in);
