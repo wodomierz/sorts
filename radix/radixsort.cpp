@@ -1,10 +1,6 @@
-#include "cuda.h"
 #include <cstdio>
 #include <iostream>
-#include <cstring>
-#include <algorithm>
 #include "../utils/utils.h"
-#include <limits>
 
 using namespace std;
 static int THREADS_IN_BLOCK = 1024;
@@ -14,7 +10,7 @@ void radixsort(int* to_sort, int size){
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "device");
 
-    int MAX_INT = numeric_limits<int>::max();
+//    int MAX_INT = numeric_limits<int>::max();
 
     CUcontext cuContext;
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "ctx");
@@ -54,6 +50,7 @@ void radixsort(int* to_sort, int size){
     void* args[5] =  { NULL,&localSums, &prefixSums, &n, &mask};
     void* args1[7] = { NULL, NULL, &localSums, &prefixSums,&mask, &n, &number_of_zeros};
 
+
     for (mask=0; mask < 31 ; mask++ ) {
         args[0] = &tab[mask%2];
 
@@ -72,15 +69,12 @@ void radixsort(int* to_sort, int size){
         cuLaunchKernel(sort, numberOfBlocks, 1, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0);
         cuCtxSynchronize();
     }
-//    int* result = (int*) malloc(sizeof(int) * size);
 
     cuMemcpyDtoH((void*) to_sort, tab[1], size * sizeof(int));
-
 
     cuMemFreeHost((void*)prefixSums);
     cuMemFree(tab[0]);
     cuMemFree(tab[1]);
     cuMemFree(localSums);
     cuCtxDestroy(cuContext);
-//    return result;
 }

@@ -4,7 +4,7 @@
 #include "../utils/kernel_commons.cuh"
 #include "quick_shared.h"
 #include "../bitonic/bitonic_sort.cuh"
-
+#include "../prefsum/prefsum.cuh"
 
 extern "C" {
 
@@ -41,22 +41,11 @@ void pivot(int* array, int size, int* result) {
 }
 
 __device__ __forceinline__
-void pref_sum(int shared[][QUICK_THREADS_IN_BLOCK], int *array) {
+void pref_sum(int (&shared)[2][QUICK_THREADS_IN_BLOCK], int *array) {
     shared[0][threadIdx.x] = array[threadIdx.x];
     __syncthreads();
-
-    bool from = 1;
     bool to = 0;
-    for (int d = 1; d < QUICK_THREADS_IN_BLOCK; d <<= 1) {
-        from = !from;
-        to = !to;
-        if (threadIdx.x >= d) {
-            shared[to][threadIdx.x] = shared[from][threadIdx.x - d] + shared[from][threadIdx.x];
-        } else {
-            shared[to][threadIdx.x] = shared[from][threadIdx.x];
-        }
-        __syncthreads();
-    }
+    prefixSumDev<QUICK_THREADS_IN_BLOCK, 1>(shared, to);
 
     array[threadIdx.x + 1] = shared[to][threadIdx.x];
     if (threadIdx.x == 0) {
@@ -158,23 +147,14 @@ void altOrPush(
     }
 }
 
-
-
 __global__
 void lqsort(DevArray *seqs, int *in_h, int *out_h) {
     __shared__ int lt[QUICK_THREADS_IN_BLOCK + 1];
     __shared__ int gt[QUICK_THREADS_IN_BLOCK + 1];
-    __shared__ int pivot;
-    // how with shared memory ???
-    __shared__ int start, end;
-    __shared__ int gstart, gend;
-    __shared__ DevArray workStack[1024];
-
-    //TODO checkout
+    __shared__ int pivot, start, end;
     __shared__ int workStcIndex;
-
-    __shared__ int shared[2][QUICK_THREADS_IN_BLOCK];
-    __shared__ int tab[QUICK_THREADS_IN_BLOCK *2];
+    __shared__ DevArray workStack[64];
+    __shared__ int shared[2*QUICK_THREADS_IN_BLOCK];
     __shared__ DevArray long_seq, short_seq;
 
     int *out = out_h;
@@ -186,9 +166,6 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
     if (threadIdx.x == 0) {
         workStcIndex = 0;
         workStack[0] = seqs[blockId];
-        gstart = workStack[0].start;
-        gend = workStack[0].end;
-
     }
     __syncthreads();
     while (workStcIndex >= 0) {
@@ -213,9 +190,10 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
                 gt[threadIdx.x]++;
             }
         }
-        pref_sum(shared, lt); //exclusive
+
+        pref_sum(*reinterpret_cast<int (*)[2][QUICK_THREADS_IN_BLOCK]>(shared), lt); //exclusive
         __syncthreads();
-        pref_sum(shared, gt);
+        pref_sum(*reinterpret_cast<int (*)[2][QUICK_THREADS_IN_BLOCK]>(shared), gt);
         __syncthreads();
         l_from = start + lt[threadIdx.x];
         g_from = end - gt[threadIdx.x + 1];
@@ -243,14 +221,14 @@ void lqsort(DevArray *seqs, int *in_h, int *out_h) {
         }
 
         __syncthreads();
-        altOrPush(long_seq, workStack, workStcIndex , out, tab);
+        altOrPush(long_seq, workStack, workStcIndex , out, shared);
         __syncthreads();
-        altOrPush(short_seq, workStack,workStcIndex, out, tab);
+        altOrPush(short_seq, workStack,workStcIndex, out, shared);
         __syncthreads();
 
         //todo imporve it
-        i = gstart + threadIdx.x;
-        for (; i < gend; i += QUICK_THREADS_IN_BLOCK) {
+        i = start + threadIdx.x;
+        for (; i < end; i += QUICK_THREADS_IN_BLOCK) {
             in[i] = out[i];
         }
     }

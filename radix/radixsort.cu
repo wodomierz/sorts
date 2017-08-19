@@ -1,10 +1,10 @@
 #include <cstdio>
 #include "../utils/cuda_device.h"
-
+#include "../prefsum/prefsum.cuh"
 extern "C" {
 __global__
 void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
-  __shared__ int shared[2][2049];
+  __shared__ int shared[2][2048];
 	int thid = 2*((blockIdx.x *  blockDim.x) + threadIdx.x);
 
 	if (thid >= size) {
@@ -23,27 +23,8 @@ void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
 
 	__syncthreads();
 
-	bool from = 1;
 	bool to = 0;
-	for (int d = 1; d < 2048; d<<=1) {
-		from = !from;
-		to = !to;
-		if (2*threadIdx.x >= d) {
-			shared[to][2*threadIdx.x] = shared[from][2*threadIdx.x - d] + shared[from][2*threadIdx.x];
-		}
-		else {
-			shared[to][2*threadIdx.x] = shared[from][2*threadIdx.x];
-		}
-
-		if(2*threadIdx.x + 1 >= d ){
-			shared[to][2*threadIdx.x + 1] = shared[from][2*threadIdx.x +1 - d] + shared[from][2*threadIdx.x +1];
-		}
-		else {
-			shared[to][2*threadIdx.x +1 ] = shared[from][2*threadIdx.x +1];
-		}
-
-		__syncthreads();
-	}
+	prefixSumDev<1024, 2>(shared, to);
 
 	if (thid < size) out[thid] = shared[to][2*threadIdx.x];
 	if (thid +1 < size) out[thid+1] = shared[to][2*threadIdx.x +1];
