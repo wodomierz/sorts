@@ -23,13 +23,13 @@ int median(int *array, int start, int end) {
     return tab[1];
 }
 
-template <int THREADS>
+template <int Threads>
 __device__ __forceinline__
-void pref_sum(int (&shared)[2][THREADS], int *array) {
+void pref_sum(int (&shared)[2][Threads], int *array) {
     shared[0][threadIdx.x] = array[threadIdx.x];
     __syncthreads();
     bool to = 0;
-    prefixSumDev<THREADS, 1>(shared, to);
+    prefixSumDev<Threads, 1>(shared, to);
 
     array[threadIdx.x + 1] = shared[to][threadIdx.x];
     if (threadIdx.x == 0) {
@@ -37,32 +37,30 @@ void pref_sum(int (&shared)[2][THREADS], int *array) {
     }
 }
 
-template <int THREADS_POW>
+template <int ThreadsPow>
 __device__ __forceinline__
 void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
-    const int THREADS = (1 << THREADS_POW);
+    const int Threads = (1 << ThreadsPow);
     //cached in to shared ?
-    __shared__ int lt[THREADS + 1],
-        gt[THREADS + 1],
+    __shared__ int lt[Threads + 1],
+        gt[Threads + 1],
         pivot,
         start,
         end,
         lbeg, gbeg;
-    __shared__ int shared[2][THREADS];
+    __shared__ int shared[2][Threads];
 
 
 
     int i, l_from, g_from, l_pivot, g_pivot;
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-
     SharedVars *parent;
 
-    if (threadIdx.x == THREADS - 1) {
+    if (threadIdx.x == Threads - 1) {
         //broadcast?
         //sync needed?
-        Block block = blocks[blockId];
-        parent = blocks[blockId].sharedVars;
+        Block block = blocks[one_dimension_blockId()];
+        parent = block.sharedVars;
         start = block.workUnit.seq.start;
         end = block.workUnit.seq.end;
         pivot = block.workUnit.pivot;
@@ -77,7 +75,7 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     __syncthreads();
     i = start + threadIdx.x;
 
-    for (; i < end; i += THREADS) {
+    for (; i < end; i += Threads) {
         if (in[i] < pivot) lt[threadIdx.x]++;
         if (in[i] > pivot) gt[threadIdx.x]++;
     }
@@ -85,16 +83,16 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     pref_sum(shared, gt);
 
 
-    if (threadIdx.x == THREADS - 1) {
-        lbeg = atomicAdd(&(parent->seq.start), lt[THREADS]);
-        gbeg = atomicSub(&(parent->seq.end), gt[THREADS]) - gt[THREADS];
+    if (threadIdx.x == Threads - 1) {
+        lbeg = atomicAdd(&(parent->seq.start), lt[Threads]);
+        gbeg = atomicSub(&(parent->seq.end), gt[Threads]) - gt[Threads];
     }
     __syncthreads();
 
     l_from = lbeg + lt[threadIdx.x];
     g_from = gbeg + gt[threadIdx.x];
     i = start + threadIdx.x;
-    for (; i < end; i += THREADS) {
+    for (; i < end; i += Threads) {
         if (in[i] < pivot) {
             out[l_from++] = in[i];
         }
@@ -103,7 +101,7 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
         }
     }
     __syncthreads();
-    if (threadIdx.x == THREADS - 1 && atomicSub(&(parent->block_count), 1) == 1) {
+    if (threadIdx.x == Threads - 1 && atomicSub(&(parent->block_count), 1) == 1) {
         for (i = parent->seq.start; i < parent->seq.end; i++) {
             out[i] =  pivot;
             in[i] = pivot;
@@ -149,11 +147,9 @@ void lqsort_dev(DevArray *seqs, int *in_h, int *out_h) {
     int *in = in_h;
     int i, l_from, g_from;
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-
     if (threadIdx.x == 0) {
         workStcIndex = 0;
-        workStack[0] = seqs[blockId];
+        workStack[0] = seqs[one_dimension_blockId()];
     }
     __syncthreads();
     while (workStcIndex >= 0) {
