@@ -8,18 +8,18 @@ static int THREADS_IN_BLOCK = 1024;
 void radixsort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
-    manageResult(cuDeviceGet(&cuDevice, 0), "device");
+    manageResult(cuDeviceGet(&cuDevice, 0));
 
 //    int MAX_INT = numeric_limits<int>::max();
 
     CUcontext cuContext;
-    manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "ctx");
+    manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
     CUmodule cuModule = (CUmodule) 0;
-    manageResult(cuModuleLoad(&cuModule, "radix/radixsort.ptx"), "module");
+    manageResult(cuModuleLoad(&cuModule, "radix/radixsort.ptx"));
     CUfunction sort;
-    manageResult(cuModuleGetFunction(&sort, cuModule, "sort"), "func");
+    manageResult(cuModuleGetFunction(&sort, cuModule, "sort"));
     CUfunction prefixSum;
-    manageResult(cuModuleGetFunction(&prefixSum, cuModule, "prefixSum"), "func");
+    manageResult(cuModuleGetFunction(&prefixSum, cuModule, "prefixSum"));
 
 
 

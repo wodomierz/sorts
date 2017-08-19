@@ -11,16 +11,16 @@ namespace sample_rand {
 
     Device::Device() {
         cuInit(0);
-        manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
-        manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
-        manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"), "cannot load module");
-        manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"), "cannot load function");
-        manageResult(cuModuleGetFunction(&prefsumDev1, cuModule, "prefsum1"), "cannot load function");
-        manageResult(cuModuleGetFunction(&countersCU, cuModule, "counters"), "cannot load function");
-        manageResult(cuModuleGetFunction(&scatterCU, cuModule, "scatter"), "cannot load function");
+        manageResult(cuDeviceGet(&cuDevice, 0));
+        manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
+        manageResult(cuModuleLoad(&cuModule, "sample-rand/sample_rand.ptx"));
+        manageResult(cuModuleGetFunction(&prefsumDev, cuModule, "prefsum"));
+        manageResult(cuModuleGetFunction(&prefsumDev1, cuModule, "prefsum1"));
+        manageResult(cuModuleGetFunction(&countersCU, cuModule, "counters"));
+        manageResult(cuModuleGetFunction(&scatterCU, cuModule, "scatter"));
 
-        manageResult(cuModuleGetFunction(&chujowy_sortDev, cuModule, "chujowy_sort"), "cannot load function");
-        manageResult(cuModuleGetFunction(&sampleDev, cuModule, "sample"), "cannot load function");
+        manageResult(cuModuleGetFunction(&chujowy_sortDev, cuModule, "chujowy_sort"));
+        manageResult(cuModuleGetFunction(&sampleDev, cuModule, "sample"));
 
     }
 
@@ -28,9 +28,7 @@ namespace sample_rand {
         BaseData &baseData = memory.baseData;
         void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums,
                       &baseData.number_of_blocks, &memory.baseData.size};
-        manageResult(
-            cuLaunchKernel(scatterCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args2, 0),
-            "running");
+        safeLaunch1Dim(scatterCU, baseData.x_dim, baseData.y_dim, THREADS_PER_BLOCK, args2);
         cuCtxSynchronize();
     }
 
@@ -38,36 +36,27 @@ namespace sample_rand {
         BaseData &baseData = memory.baseData;
         void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks,
                          &memory.baseData.size};
-        manageResult(
-            cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args1, 0),
-            "running");
+        safeLaunch1Dim(countersCU, baseData.x_dim, baseData.y_dim, THREADS_PER_BLOCK, args1);
         cuCtxSynchronize();
     }
 
     void Device::chujowy(sample_rand::Context &memory) {
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
-        manageResult(cuLaunchKernel(chujowy_sortDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
-                     "running");
+        safeLaunch1Dim(chujowy_sortDev, 1, 1, 1, args);
         cuCtxSynchronize();
     }
 
     void Device::localPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory) {
         void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &prefsumMemory.baseData.size};
 
-        manageResult(
-            cuLaunchKernel(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS,
-                           1, 1, 0, 0, args, 0),
-            "pref");
+        safeLaunch1Dim(prefsumDev, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, PREFSUM_THREADS, args);
         cuCtxSynchronize();
     }
 
     void Device::globalPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory) {
         void *args[] = {&memory.blockPrefsums, &prefsumMemory.batchSums, &memory.baseData.number_of_blocks,
                         &memory.sample_offsets, &prefsumMemory.baseData.size};
-        manageResult(
-            cuLaunchKernel(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, 1, PREFSUM_THREADS,
-                           1, 1, 0, 0, args, 0),
-            "pref1");
+        safeLaunch1Dim(prefsumDev1, prefsumMemory.baseData.x_dim, prefsumMemory.baseData.y_dim, PREFSUM_THREADS, args);
         cuCtxSynchronize();
     }
 
@@ -83,7 +72,7 @@ namespace sample_rand {
         int plus = rand() % 100000;
         int seed = rand() % 100000;
         void *args[] = {&memory.deviceToSort, &memory.baseData.size, &seed, &plus, &memory.bstPtr};
-        manageResult(cuLaunchKernel(sampleDev, 1, 1, 1, SAMPLE_THREADS, 1, 1, 0, 0, args, 0), "sample");
+        safeLaunch1Dim(sampleDev, 1, 1, SAMPLE_THREADS, args);
         cuCtxSynchronize();
     }
 

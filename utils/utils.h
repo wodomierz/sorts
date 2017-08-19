@@ -15,7 +15,8 @@
 
 #define MAX_GRID_DIM (1 << 30)
 
-void manageError(CUresult, std::string, int, const char *);
+void manageError(CUresult, int, const char *);
+void manageErrorWithMessage(CUresult, std::string, int, const char *);
 
 //typedef std::vector<std::string> String;
 typedef bool (*Filter)(int, int *);
@@ -34,7 +35,9 @@ print_tab(int *tab, int size, int prints, const char *title, Printer printer = s
 void print_Devtab(CUdeviceptr &dtab, int size, int prints, int from = 0, const char *title = "",
                   Printer printer = simplePrint, Filter filter = everything);
 
-#define manageResult(error_code, comment) (manageError((error_code), (comment), __LINE__, __FILE__))
+#define manageResultWithMessage(error_code, comment) (manageErrorWithMessage((error_code), (comment), __LINE__, __FILE__))
+#define manageResult(error_code) (manageError((error_code), __LINE__, __FILE__))
+#define safeLaunch1Dim(f, x, y, threads, args) (manageResult(cuLaunchKernel((f), (x),(y),1,(threads),1,1,0,0,(args),0)))
 
 int ceil_div(int, int);
 

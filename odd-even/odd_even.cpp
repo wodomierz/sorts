@@ -11,31 +11,29 @@ using namespace std;
 
 double run1(CUmodule cuModule, CUdeviceptr deviceToSort, int power, int x_dim, int y_dim, int size) {
     CUfunction odd_even_phase1;
-    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"));
     CUfunction odd_even_phase2;
-    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"));
 
     CUfunction odd_even;
-    manageResult(cuModuleGetFunction(&odd_even, cuModule, "odd_even"), "");
+    manageResult(cuModuleGetFunction(&odd_even, cuModule, "odd_even"));
 
     //check this one more time
     std::clock_t start = std::clock();
 
     void *args[1] = {&deviceToSort};
-    manageResult(cuLaunchKernel(odd_even, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0), "running");
+    safeLaunch1Dim(odd_even, x_dim, y_dim, THREADS_IN_BLOCK, args);
     cuCtxSynchronize();
 
 
     for (int pow__half_batch = 11; pow__half_batch <= power - 1; pow__half_batch++) {
         int half_batch = 1 << pow__half_batch;
         void *args1[3] = {&deviceToSort, &pow__half_batch, &size};
-        manageResult(cuLaunchKernel(odd_even_phase1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),
-                     "running");
+        safeLaunch1Dim(odd_even_phase1, x_dim, y_dim, THREADS_IN_BLOCK, args1);
         cuCtxSynchronize();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
             void *args2[4] = {&deviceToSort, &d_power, &half_batch, &size};
-            manageResult(cuLaunchKernel(odd_even_phase2, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),
-                         "running");
+            safeLaunch1Dim(odd_even_phase2, x_dim, y_dim, THREADS_IN_BLOCK, args2);
             cuCtxSynchronize();
         }
 
@@ -49,15 +47,15 @@ double run1(CUmodule cuModule, CUdeviceptr deviceToSort, int power, int x_dim, i
 double odd_even(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
-    manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
+    manageResult(cuDeviceGet(&cuDevice, 0));
     CUcontext cuContext;
-    manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create Context");
+    manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
     CUmodule cuModule = (CUmodule) 0;
-    manageResult(cuModuleLoad(&cuModule, "odd-even/odd_even.ptx"), "cannot load module");
+    manageResult(cuModuleLoad(&cuModule, "odd-even/odd_even.ptx"));
     CUfunction odd_even_phase1;
-    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"));
     CUfunction odd_even_phase2;
-    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"), "");
+    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"));
 
 
     int n;

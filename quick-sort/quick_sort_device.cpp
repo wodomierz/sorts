@@ -4,10 +4,10 @@
 namespace quick {
 
     Device::Device() {
-        manageResult(cuModuleLoad(&cuModule, "quick-sort/quick_sort.ptx"), "cannot load module");
-        manageResult(cuModuleGetFunction(&gqsortDev, cuModule, "gqsort"), "cannot load function");
-        manageResult(cuModuleGetFunction(&lqsortDev, cuModule, "lqsort"), "cannot load function");
-        manageResult(cuModuleGetFunction(&pivotDev, cuModule, "pivot"), "cannot load function");
+        manageResult(cuModuleLoad(&cuModule, "quick-sort/quick_sort.ptx"));
+        manageResult(cuModuleGetFunction(&gqsortDev, cuModule, "gqsort"));
+        manageResult(cuModuleGetFunction(&lqsortDev, cuModule, "lqsort"));
+        manageResult(cuModuleGetFunction(&pivotDev, cuModule, "pivot"));
     }
 
 
@@ -15,8 +15,7 @@ namespace quick {
         int x_dim = block_count > MAX_GRID_DIM ? MAX_GRID_DIM : block_count;
         int y_dim = ceil_div(block_count, x_dim);
         void *args[]{&blocks, &in, &out, &news};
-        manageResult(cuLaunchKernel(gqsortDev, x_dim, y_dim, 1, 1 << QUICKTHREADS_POW, 1, 1, 0, 0, args, 0),
-                     "running");
+        safeLaunch1Dim(gqsortDev, x_dim, y_dim, 1 << QUICKTHREADS_POW, args);
         cuCtxSynchronize();
     }
 
@@ -26,8 +25,7 @@ namespace quick {
 //        PRINT1("launch lqsort %d %d %d\n", seqs_count, x_dim, y_dim);
 
         void *args[]{&seqs, &in, &out};
-        manageResult(cuLaunchKernel(lqsortDev, x_dim, y_dim, 1, 1 << QUICKTHREADS_POW, 1, 1, 0, 0, args, 0),
-                     "running");
+        safeLaunch1Dim(lqsortDev, x_dim, y_dim, 1 << QUICKTHREADS_POW, args);
         cuCtxSynchronize();
     }
 
@@ -35,8 +33,7 @@ namespace quick {
         int result;
         int *pivot = cuMemAllocH<int>(1);
         void *args[]{&to_sort, &size, &pivot};
-        manageResult(cuLaunchKernel(pivotDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
-                     "running");
+        safeLaunch1Dim(pivotDev, 1, 1, 1,args);
         cuCtxSynchronize();
         result = *pivot;
         PRINT1("PIVOT %d\n", result);

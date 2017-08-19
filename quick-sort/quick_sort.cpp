@@ -153,8 +153,8 @@ void quick_sort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     CUcontext cuContext;
-    manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
-    manageResult(cuCtxCreate(&cuContext, 0, cuDevice), "cannot create context");
+    manageResult(cuDeviceGet(&cuDevice, 0));
+    manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
 
     PRINT1("tutej\n");
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
