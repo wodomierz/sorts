@@ -47,19 +47,6 @@ void sample(int *tab, int size, int seed, int plus, int *bst) {
     }
 }
 
-
-//__device__ __forceinline__
-//int findIndex(int e, int *bst) {
-//    int j = 1;
-//    int k = S_POW;
-//    while (k--) {
-//        j = 2 * j + (e > bst[j - 1]);
-//    }
-//    j = j - S_SIZE; // bucket index
-//    return j;
-//}
-
-
 __global__
 void prefsum1(int *localPrefsums, int *maxPrefSums, int number_of_counter_blocks, int *sample_offsets, int size) {
     prefsum1_dev<PREFSUM_THREADS, 2>(localPrefsums, maxPrefSums, number_of_counter_blocks, sample_offsets, size);
