@@ -79,14 +79,14 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
 
 
 void cmpSorts(int n, int *initData) {
-    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, true); }, initData, n, "odd-even");
-    double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size, false); }, initData, n, "bitonic");
+    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n, "odd-even");
+    double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n, "bitonic");
     results1.push_back(m1);
     results.push_back(m);
 }
 
 void cmpSorts1(int n, int *initData) {
-    double m1 = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size, true); }, initData, n, "bit");
+    double m1 = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "bit");
     double m = cleanTestTime([](int *tab, int size) -> void {  std::sort(tab, tab + size); }, initData, n, "std");
     results1.push_back(m1);
     results.push_back(m);

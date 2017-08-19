@@ -6,6 +6,17 @@
 
 
 __device__ __forceinline__
+int one_dimension_blockId() {
+    return blockIdx.x + blockIdx.y * blockDim.x;
+}
+
+template <int BlockSize>
+__device__ __forceinline__
+int one_dimension_offset() {
+    return one_dimension_blockId()*BlockSize;
+}
+
+__device__ __forceinline__
 void min_max(int *tab, int for_min, int for_max, int size) {
     if (for_min >= size || for_max >= size) {
         return;

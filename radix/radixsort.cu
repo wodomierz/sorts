@@ -34,6 +34,30 @@ void radix_pref_sum_dev(int* in , int* out, int* prefixSums, int size, int mask)
 	}
 }
 
+template <int Threads, int Elements>
+__device__ __forceinline__
+void sort_dev(int* source, int* destination, int* prefixSum, int* prefixSums, int mask, int n,  int number_of_zeros) {
+	const int BlockSize = Threads * Elements;
+	int blockId = one_dimension_blockId();
+	int offset = blockId * BlockSize;
+	prefixSum += offset;
+	source += offset;
+	n -= offset;
+	for (int thid = threadIdx.x; thid < BlockSize && thid < n; thid += Threads) {
+		int place;
+		if ((source[thid]>>mask)&1) {
+			place = number_of_zeros + prefixSum[thid] + prefixSums[blockId] - 1;
+		}
+		else {
+			place = offset + thid - prefixSum[thid] - prefixSums[blockId];
+		}
+		destination[place] = source[thid];
+	}
+
+}
+
+
+
 extern "C" {
 __global__
 void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
@@ -42,28 +66,7 @@ void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {
 
 __global__
 void sort(int* source, int* destination, int* prefixSum, int* prefixSums, int mask, int n,  int number_of_zeros) {
-	int thid =2*(blockIdx.x *  blockDim.x) + threadIdx.x;
-		if (thid < n) {
-			int place;
-			if ((source[thid]>>mask)&1) {
-				place = number_of_zeros + prefixSum[thid] + prefixSums[blockIdx.x] - 1;
-			}
-			else {
-				place = thid - prefixSum[thid] - prefixSums[blockIdx.x];
-			}
-			destination[place] = source[thid];
-		}
-		thid += 1024;
-		if(thid < n) {
-			int place;
-			if ((source[thid]>>mask)&1) {
-				place = number_of_zeros + prefixSum[thid] + prefixSums[blockIdx.x] - 1;
-			}
-			else {
-				place = thid - prefixSum[thid] - prefixSums[blockIdx.x];
-			}
-			destination[place] = source[thid];
-		}
+	sort_dev<1024, 2>(source, destination, prefixSum, prefixSums, mask, n, number_of_zeros);
 }
 }
 
