@@ -23,7 +23,7 @@ int findIndex(int e, int *bst) {
 template<int THREADS, int ELEMENTS>
 __device__ __forceinline__
 void offset_count(int *localPrefsums, int *sample_offsets, int number_of_counter_blocks, int size) {
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    int blockId = one_dimension_blockId();
 
     int thid = threadIdx.x + blockId * THREADS * ELEMENTS;
 
@@ -34,20 +34,20 @@ void offset_count(int *localPrefsums, int *sample_offsets, int number_of_counter
     }
 }
 
-template<int THREADS, int ELEMENTS>
+template<int Threads, int Elements>
 __device__ __forceinline__
 void prefsum1_dev(int *localPrefsums, int *maxPrefSums, int number_of_counter_blocks, int *sample_offsets, int size) {
     //mozna sumowac od razu w scatter
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int thid = threadIdx.x + blockId * THREADS * ELEMENTS;
+    int blockId = one_dimension_blockId();
+    int thid = threadIdx.x + blockId * Threads * Elements;
 
     int global_offset = maxPrefSums[blockId];
 
-    for (int i = 0; i < ELEMENTS && thid < size; ++i, thid += THREADS) {
+    for (int i = 0; i < Elements && thid < size; ++i, thid += Threads) {
         localPrefsums[thid] += global_offset;
     }
-    offset_count<THREADS, ELEMENTS>(localPrefsums, sample_offsets, number_of_counter_blocks, size);
+    offset_count<Threads, Elements>(localPrefsums, sample_offsets, number_of_counter_blocks, size);
 }
 
 
@@ -76,15 +76,14 @@ template<int Threads, int Elements, int SamplePow, int ArraysNum>
 __device__ __forceinline__
 void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks, int size) {
     const int SampleSize = 1 << SamplePow;
+    const int BlockSize = Threads * Elements;
     __shared__ int bst[SampleSize];
     __shared__ int histogram[ArraysNum][SampleSize];
 
-
-    int x = blockIdx.x * blockDim.x * Elements + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
     int blockId = one_dimension_blockId();
-
-    int gthid = x + y * gridDim.x * blockDim.x * Elements;
+    int offset = blockId * BlockSize;
+    to_sort += offset;
+    size -= offset;
 
     int threadId = threadIdx.x;
 
@@ -96,9 +95,9 @@ void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks
     }
     __syncthreads();
 
-    for (int i = 0; i < Elements && gthid + i * Threads < size; ++i) {
-        int j = findIndex<SamplePow>(to_sort[gthid + i * Threads], bst);
-        atomicAdd(histogram[gthid % ArraysNum] + j, 1);
+    for (int thid = threadId; thid < BlockSize && thid < size; thid += Threads) {
+        int j = findIndex<SamplePow>(to_sort[thid], bst);
+        atomicAdd(histogram[thid % ArraysNum] + j, 1);
     }
     __syncthreads();
 
@@ -123,7 +122,7 @@ void scatter_dev(int *in, int *out, int *sample, int *prefsums, int number_of_bl
     __shared__ int bst[SampleSize];
     __shared__ int histogram[SampleSize];
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    int blockId = one_dimension_blockId();
     int threadId = threadIdx.x;
     int thid_offset = blockId * BlockSize;
     in += thid_offset;
