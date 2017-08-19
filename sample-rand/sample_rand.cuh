@@ -59,7 +59,7 @@ void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
 
     __shared__ int shared[2][BlockSize];
 
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    int blockId = one_dimension_blockId();
     int offset = blockId * BlockSize;
 
     localPrefsums += offset;
@@ -69,17 +69,7 @@ void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
         shared[0][thid] = getOrZero(localPrefsums, thid, size);
     }
     __syncthreads();
-
-    bool to = 0;
-    prefixSumDev<Threads, 2>(shared, to);
-
-    for (int thid = threadIdx.x; thid < BlockSize && thid < size; thid += Threads) {
-        localPrefsums[thid] = shared[to][thid];
-    }
-    if (threadIdx.x == Threads -1) {
-        maxPrefSums[blockId + 1] = shared[to][BlockSize - 1];
-    }
-
+    pref_sum_and_move_result_dev<Threads, Elements>(shared, localPrefsums, maxPrefSums, size, blockId);
 }
 
 template<int Threads, int Elements, int SamplePow, int ArraysNum>
@@ -92,7 +82,7 @@ void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks
 
     int x = blockIdx.x * blockDim.x * Elements + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
+    int blockId = one_dimension_blockId();
 
     int gthid = x + y * gridDim.x * blockDim.x * Elements;
 

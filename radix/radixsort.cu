@@ -22,16 +22,7 @@ void radix_pref_sum_dev(int* in , int* out, int* prefixSums, int size, int mask)
 		shared[0][thid] = thid < size ? (in[thid] >> mask)&1 : 0;
 	}
 	__syncthreads();
-
-	bool to = 0;
-	prefixSumDev<Threads, Elements>(shared, to);
-
-	for (int thid = threadIdx.x; thid < BlockSize && thid < size; thid += Threads) {
-		out[thid] = shared[to][thid];
-	}
-	if (threadIdx.x == Threads -1) {
-		prefixSums[blockId + 1] = shared[to][BlockSize - 1];
-	}
+	pref_sum_and_move_result_dev<Threads, Elements>(shared, out, prefixSums, size, blockId);
 }
 
 template <int Threads, int Elements>
