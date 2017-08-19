@@ -87,7 +87,6 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
 
     int max_seq = ceil_div(size, block_size);
 
-
     while (!work.empty() && work.size() + done.size() <= max_seq) {
         int total_block_count = 0;
         for (WorkUnit unit : work) {

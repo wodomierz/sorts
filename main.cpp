@@ -222,7 +222,7 @@ double radix1(int* tab, int size) {
 
 
 double bitonic_sort1(int* tab, int size) {
- sampleRand(tab, size);
+ radixsort(tab, size);
 //    sampleRand(tab, size);
 //    odd_even(tab,size,true);
 }
@@ -232,12 +232,12 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*4);
 //    testg(bitonic_sort1, 1024*1024);
 //    testg(bitonic_sort1, 1024*512);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*8);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*8);
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);
 //    test_big(bitonic_sort1);

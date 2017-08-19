@@ -51,33 +51,33 @@ void prefsum1_dev(int *localPrefsums, int *maxPrefSums, int number_of_counter_bl
 }
 
 
-template<int THREADS, int ELEMENTS>
+template<int Threads, int Elements>
 __device__ __forceinline__
 void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
 
-    const int LOCAL_BLOCK_SIZE = (THREADS * ELEMENTS);
+    const int BlockSize = (Threads * Elements);
 
-    __shared__ int shared[2][LOCAL_BLOCK_SIZE];
+    __shared__ int shared[2][BlockSize];
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int offset = blockId * LOCAL_BLOCK_SIZE;
+    int offset = blockId * BlockSize;
 
     localPrefsums += offset;
     size -= offset;
 
-    for (int thid = threadIdx.x; thid < LOCAL_BLOCK_SIZE; thid += THREADS) {
+    for (int thid = threadIdx.x; thid < BlockSize; thid += Threads) {
         shared[0][thid] = getOrZero(localPrefsums, thid, size);
     }
     __syncthreads();
 
     bool to = 0;
-    prefixSumDev<THREADS, 2>(shared, to);
+    prefixSumDev<Threads, 2>(shared, to);
 
-    for (int thid = threadIdx.x; thid < LOCAL_BLOCK_SIZE && thid < size; thid += THREADS) {
+    for (int thid = threadIdx.x; thid < BlockSize && thid < size; thid += Threads) {
         localPrefsums[thid] = shared[to][thid];
     }
-    if (ELEMENTS * threadIdx.x + 1 == LOCAL_BLOCK_SIZE - 1) {
-        maxPrefSums[blockId + 1] = shared[to][2 * threadIdx.x + 1];
+    if (threadIdx.x == Threads -1) {
+        maxPrefSums[blockId + 1] = shared[to][BlockSize - 1];
     }
 
 }
