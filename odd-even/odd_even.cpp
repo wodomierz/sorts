@@ -46,33 +46,7 @@ double run1(CUmodule cuModule,CUdeviceptr deviceToSort, int power, int x_dim, in
     return delta;
 }
 
-double run(CUmodule cuModule,CUdeviceptr deviceToSort, int power, int x_dim, int y_dim, int size) {
-    CUfunction odd_even_phase1;
-    manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"), "");
-    CUfunction odd_even_phase2;
-    manageResult(cuModuleGetFunction(&odd_even_phase2, cuModule, "odd_even_phase2"), "");
-    std::clock_t start = std::clock();
-    for (int pow__half_batch = 0; pow__half_batch <= power - 1; pow__half_batch++) {
-        int half_batch = 1 << pow__half_batch;
-        void *args1[3] = {&deviceToSort, &pow__half_batch, &size};
-        manageResult(cuLaunchKernel(odd_even_phase1, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args1, 0),
-                     "running");
-        cuCtxSynchronize();
-        for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
-            void *args2[4] = {&deviceToSort, &d_power, &half_batch, &size};
-            manageResult(cuLaunchKernel(odd_even_phase2, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args2, 0),
-                         "running");
-            cuCtxSynchronize();
-        }
-
-    }
-    double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
-    std::cout << "Time for " << "oe" << ": " << delta << " ms"
-              << std::endl;
-    return delta;
-}
-
-double odd_even(int *to_sort, int size, bool opt) {
+double odd_even(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
@@ -104,9 +78,7 @@ double odd_even(int *to_sort, int size, bool opt) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
-    double result ;
-       if (opt) result = run1(cuModule, deviceToSort, power, x_dim, y_dim, size);
-       else  result  = run(cuModule, deviceToSort, power, x_dim, y_dim, size);
+    double result = run1(cuModule, deviceToSort, power, x_dim, y_dim, size);
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
