@@ -19,7 +19,6 @@
 
 
 #define ARRAYS_NUM 8
-#define A ARRAYS_NUM
 #define BLOCK_SIZE (THREADS_PER_BLOCK * ELEMENTS_PER_THREAD)
 
 #define M BLOCK_SIZE
@@ -30,8 +29,6 @@
 
 #define SAMPLE_BLOCK (AS*S_SIZE)
 #define SAMPLE_THREADS 1024
-
-#define K S_SIZE
 
 void sampleRand(int*, int);
 

@@ -38,7 +38,6 @@ namespace sample_rand {
         //wydajniej
         if (baseData.size > M) {
             sample_offsets = cuAllocHostInts(S_SIZE + 1);
-
         }
         sample_offsets[0] = 0;
 

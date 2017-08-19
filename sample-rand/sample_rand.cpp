@@ -10,6 +10,7 @@
 #include "../utils/utils.h"
 #include "sample_rand_context.h"
 #include "sample_rand_device.h"
+#include "../quick-sort/quick_sort_device.h"
 #include <algorithm>
 #include <assert.h>
 
@@ -27,27 +28,28 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
 }
 
 
-void sampleRand(sample_rand::Device &device, sample_rand::Context &memory) {
+void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_rand::Context &memory) {
+    if (memory.baseData.size <=M) {
+        DevArray* seqs = cuMemAllocH<DevArray>(1);
+        seqs[0] = DevArray(0, memory.baseData.size);
+        quickDevice.lqsort(seqs, 1, memory.deviceToSort, memory.out);
+        memory.moveResult();
+        cuMemFreeHost(seqs);
+//        device.chujowy();
+        return;
+    }
     device.sample_dev(memory);
     device.counters(memory);
     prefsum(memory, device);
     device.scatter(memory);
     memory.moveResult();
     // could be more efficient
-//    PRINT1("father %d\n", memory.baseData.size);
     for (int i = 0; i < S_SIZE; ++i) {
-        int offset = memory.sample_offsets[i];
-//        PRINT1( "o %d f %d\n", offset, memory.baseData.size);
         int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
-//        PRINT1( "o1 %d f %d\n", memory.sample_offsets[i + 1], memory.baseData.size);
         if (size > 1) {
             sample_rand::Context mem(memory, i);
             //could be more efficient
-            if (mem.baseData.size > M) {
-                sampleRand(device, mem);
-            } else {
-                device.chujowy(mem);
-            }
+            sampleRand(device,quickDevice, mem);
         }
 
     }
@@ -59,13 +61,14 @@ void sampleRand(int *to_sort, int size) {
     int cudaVersion;
     cuDriverGetVersion(&cudaVersion);
     sample_rand::Device device;
+    quick::Device quick_device;
     sample_rand::Context memory(size);
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
     PRINT1("beforedsa %d\n", size);
-    sampleRand(device, memory);
+    sampleRand(device,quick_device, memory);
     PRINT("after\n");
 
     cuMemcpyDtoH((void *) to_sort, memory.deviceToSort, size * sizeof(int));

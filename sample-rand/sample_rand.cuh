@@ -6,7 +6,7 @@
 #include "../prefsum/prefsum.cuh"
 
 
-template <int SamplePow>
+template<int SamplePow>
 __device__ __forceinline__
 int findIndex(int e, int *bst) {
     const int SampleSize = (1 << SamplePow);
@@ -20,7 +20,7 @@ int findIndex(int e, int *bst) {
 }
 
 
-template <int THREADS, int ELEMENTS>
+template<int THREADS, int ELEMENTS>
 __device__ __forceinline__
 void offset_count(int *localPrefsums, int *sample_offsets, int number_of_counter_blocks, int size) {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -34,9 +34,11 @@ void offset_count(int *localPrefsums, int *sample_offsets, int number_of_counter
     }
 }
 
-template <int THREADS, int ELEMENTS>
+template<int THREADS, int ELEMENTS>
 __device__ __forceinline__
 void prefsum1_dev(int *localPrefsums, int *maxPrefSums, int number_of_counter_blocks, int *sample_offsets, int size) {
+    //mozna sumowac od razu w scatter
+
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int thid = threadIdx.x + blockId * THREADS * ELEMENTS;
 
@@ -49,9 +51,7 @@ void prefsum1_dev(int *localPrefsums, int *maxPrefSums, int number_of_counter_bl
 }
 
 
-
-
-template <int THREADS, int ELEMENTS>
+template<int THREADS, int ELEMENTS>
 __device__ __forceinline__
 void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
 
@@ -65,7 +65,7 @@ void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
     localPrefsums += offset;
     size -= offset;
 
-    for (int thid= threadIdx.x; thid < LOCAL_BLOCK_SIZE; thid += THREADS) {
+    for (int thid = threadIdx.x; thid < LOCAL_BLOCK_SIZE; thid += THREADS) {
         shared[0][thid] = getOrZero(localPrefsums, thid, size);
     }
     __syncthreads();
@@ -73,16 +73,16 @@ void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
     bool to = 0;
     prefixSumDev<THREADS, 2>(shared, to);
 
-    for (int thid= threadIdx.x; thid < LOCAL_BLOCK_SIZE && thid < size; thid += THREADS) {
+    for (int thid = threadIdx.x; thid < LOCAL_BLOCK_SIZE && thid < size; thid += THREADS) {
         localPrefsums[thid] = shared[to][thid];
     }
-    if (ELEMENTS * threadIdx.x + 1 == LOCAL_BLOCK_SIZE -1) {
+    if (ELEMENTS * threadIdx.x + 1 == LOCAL_BLOCK_SIZE - 1) {
         maxPrefSums[blockId + 1] = shared[to][2 * threadIdx.x + 1];
     }
 
 }
 
-template <int Threads, int Elements, int SamplePow, int ArraysNum>
+template<int Threads, int Elements, int SamplePow, int ArraysNum>
 __device__ __forceinline__
 void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks, int size) {
     const int SampleSize = 1 << SamplePow;
@@ -124,7 +124,7 @@ void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks
 }
 
 //SampleSize should be less than Threads!!!
-template <int Threads, int Elements, int SamplePow >
+template<int Threads, int Elements, int SamplePow>
 __device__ __forceinline__
 void scatter_dev(int *in, int *out, int *sample, int *prefsums, int number_of_blocks, int size) {
     const int SampleSize = 1 << SamplePow;
@@ -135,7 +135,7 @@ void scatter_dev(int *in, int *out, int *sample, int *prefsums, int number_of_bl
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int threadId = threadIdx.x;
-    int thid_offset = blockId *BlockSize;
+    int thid_offset = blockId * BlockSize;
     in += thid_offset;
     size -= thid_offset;
 
@@ -157,5 +157,38 @@ void scatter_dev(int *in, int *out, int *sample, int *prefsums, int number_of_bl
         out[offset + local_index] = e;
     }
 }
+
+
+__device__ __forceinline__
+int place(int size, int seed, int plus, int i) {
+    return (i * seed + plus) % size;
+}
+
+template<int BlockSize, int Threads, int SamplSize, int A>
+__device__ __forceinline__
+void sample_dev(int *tab, int size, int seed, int plus, int *bst) {
+    __shared__ int to_sort[BlockSize];
+    int thid = threadIdx.x;
+
+    int i = thid;
+    for (; i < BlockSize; i += Threads) {
+        to_sort[i] = tab[place(size, seed, plus, i)];
+    }
+
+    __syncthreads();
+
+    chujowy_sort_dev(to_sort, BlockSize);
+    __syncthreads();
+    if (threadIdx.x == 0) {
+        int iteratr = 0;
+        for (int i = 2; i <= SamplSize; i *= 2) {
+            for (int j = 1; j < i; j += 2) {
+                bst[iteratr++] = to_sort[(j * (SamplSize / i) - 1) * A];
+            }
+        }
+        bst[SamplSize - 1] = 0;
+    }
+}
+
 
 #endif //SORTS_SAMPLE_RAND_CUH
