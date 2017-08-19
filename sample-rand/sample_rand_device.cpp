@@ -20,9 +20,6 @@ namespace sample_rand {
         manageResult(cuModuleGetFunction(&scatterCU, cuModule, "scatter"), "cannot load function");
 
         manageResult(cuModuleGetFunction(&chujowy_sortDev, cuModule, "chujowy_sort"), "cannot load function");
-
-        manageResult(cuModuleGetFunction(&cuOdeven, cuModule, "odd_even"), "cannot load function");
-
         manageResult(cuModuleGetFunction(&sampleDev, cuModule, "sample"), "cannot load function");
 
     }
@@ -45,14 +42,6 @@ namespace sample_rand {
             cuLaunchKernel(countersCU, baseData.x_dim, baseData.y_dim, 1, THREADS_PER_BLOCK, 1, 1, 0, 0, args1, 0),
             "running");
         cuCtxSynchronize();
-    }
-
-    void Device::odd_even(sample_rand::Context &memory) {
-        void *args[1] = {&memory.deviceToSort};
-        manageResult(cuLaunchKernel(cuOdeven, memory.baseData.size / 2, 1, 1, M / 2, 1, 1, 0, 0, args, 0),
-                     "running");
-        cuCtxSynchronize();
-
     }
 
     void Device::chujowy(sample_rand::Context &memory) {

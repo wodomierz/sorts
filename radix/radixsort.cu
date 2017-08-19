@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "../utils/cuda_device.h"
 #include "../prefsum/prefsum.cuh"
+
 extern "C" {
 __global__
 void prefixSum(int* in , int* out, int* prefixSums, int size, int mask) {

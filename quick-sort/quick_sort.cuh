@@ -23,9 +23,6 @@ int median(int *array, int start, int end) {
     return tab[1];
 }
 
-
-
-
 template <int THREADS>
 __device__ __forceinline__
 void pref_sum(int (&shared)[2][THREADS], int *array) {
