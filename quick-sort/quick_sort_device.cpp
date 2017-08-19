@@ -33,7 +33,7 @@ namespace quick {
 
     int Device::pivot(CUdeviceptr to_sort, int size) {
         int result;
-        int* pivot = cuMemAllocH<int>(1);
+        int *pivot = cuMemAllocH<int>(1);
         void *args[]{&to_sort, &size, &pivot};
         manageResult(cuLaunchKernel(pivotDev, 1, 1, 1, 1, 1, 1, 0, 0, args, 0),
                      "running");

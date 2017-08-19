@@ -8,8 +8,8 @@ __global__
 void bitonic_merge2(int *to_sort) {
     __shared__ int tab[2048];
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int offset = blockId * blockDim.x*2;
-    bitonic_merge_device<10>(to_sort + offset,2048, tab);
+    int offset = blockId * blockDim.x * 2;
+    bitonic_merge_device<10>(to_sort + offset, 2048, tab);
 }
 
 __global__
@@ -32,7 +32,7 @@ void bitonic_triangle_merge(int *to_sort, int half_triangle_power, int size) {
 
     int d_triangle = 1 << (half_triangle_power + 1);
     int wireThid = thid + ((thid >> half_triangle_power) << half_triangle_power);
-    int local_thid = wireThid & ( d_triangle-1);
+    int local_thid = wireThid & (d_triangle - 1);
     int opposite = wireThid - local_thid + d_triangle - 1 - local_thid;
     min_max(to_sort, wireThid, opposite, size);
 }

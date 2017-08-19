@@ -10,7 +10,7 @@
 extern "C" {
 
 __global__
-void pivot(int* array, int size, int* result) {
+void pivot(int *array, int size, int *result) {
     *result = median(array, 0, size);
 }
 

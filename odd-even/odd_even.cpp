@@ -9,7 +9,7 @@ static int THREADS_IN_BLOCK = 1024;
 using namespace std;
 
 
-double run1(CUmodule cuModule,CUdeviceptr deviceToSort, int power, int x_dim, int y_dim, int size) {
+double run1(CUmodule cuModule, CUdeviceptr deviceToSort, int power, int x_dim, int y_dim, int size) {
     CUfunction odd_even_phase1;
     manageResult(cuModuleGetFunction(&odd_even_phase1, cuModule, "odd_even_phase1"), "");
     CUfunction odd_even_phase2;
@@ -21,8 +21,8 @@ double run1(CUmodule cuModule,CUdeviceptr deviceToSort, int power, int x_dim, in
     //check this one more time
     std::clock_t start = std::clock();
 
-    void* args[1] = {&deviceToSort};
-    manageResult(cuLaunchKernel(odd_even, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0),"running");
+    void *args[1] = {&deviceToSort};
+    manageResult(cuLaunchKernel(odd_even, x_dim, y_dim, 1, THREADS_IN_BLOCK, 1, 1, 0, 0, args, 0), "running");
     cuCtxSynchronize();
 
 
@@ -64,7 +64,7 @@ double odd_even(int *to_sort, int size) {
     int power = 0;
     //fit n to power of 2
     for (n = 1; n < size; n <<= 1, power++);
-    int half_size = n/2;
+    int half_size = n / 2;
 
     int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
     int max_grid_dim_x = 32768;

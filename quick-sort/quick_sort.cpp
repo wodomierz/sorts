@@ -22,7 +22,7 @@ int sum_seq_size(std::vector<WorkUnit> work, int max_seq) {
 }
 
 
-inline Block block(int seq_index, SharedVars* parents, WorkUnit& unit, int& start, int end) {
+inline Block block(int seq_index, SharedVars *parents, WorkUnit &unit, int &start, int end) {
     return {
         {
             {start, end},
@@ -31,10 +31,12 @@ inline Block block(int seq_index, SharedVars* parents, WorkUnit& unit, int& star
         parents + seq_index
     };
 };
-inline Block middleBlock(int seq_index, SharedVars* parents, int block_size, WorkUnit& unit, int bstart) {
+
+inline Block middleBlock(int seq_index, SharedVars *parents, int block_size, WorkUnit &unit, int bstart) {
     return block(seq_index, parents, unit, bstart, bstart + block_size);
 };
-inline Block lastBlock(int seq_index, SharedVars* parents, WorkUnit& unit, int bstart) {
+
+inline Block lastBlock(int seq_index, SharedVars *parents, WorkUnit &unit, int bstart) {
     return block(seq_index, parents, unit, bstart, unit.seq.end);
 };
 
@@ -43,7 +45,7 @@ void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &wo
     int seq_index = -1;
 
     //lamda or inline?
-    auto block = [&seq_index, parents](WorkUnit& unit, int& start, int end) -> Block {
+    auto block = [&seq_index, parents](WorkUnit &unit, int &start, int end) -> Block {
         return {
             {
                 {start, end},
@@ -52,10 +54,10 @@ void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &wo
             parents + seq_index
         };
     };
-    auto middleBlock = [block, block_size](WorkUnit& unit, int bstart) -> Block {
+    auto middleBlock = [block, block_size](WorkUnit &unit, int bstart) -> Block {
         return block(unit, bstart, bstart + block_size);
     };
-    auto lastBlock = [block](WorkUnit& unit, int bstart) -> Block {
+    auto lastBlock = [block](WorkUnit &unit, int bstart) -> Block {
         return block(unit, bstart, unit.seq.end);
     };
 
@@ -83,7 +85,7 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     std::vector<WorkUnit> work = {WorkUnit(DevArray(0, size), start_pivot)};
     std::vector<WorkUnit> done;
 
-    int block_size = (1<< QUICKTHREADS_POW)*32;
+    int block_size = (1 << QUICKTHREADS_POW) * 32;
 
     int max_seq = ceil_div(size, block_size);
 

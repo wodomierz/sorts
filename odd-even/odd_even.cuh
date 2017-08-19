@@ -4,7 +4,7 @@
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 
-template <int THREADS_POW>
+template<int THREADS_POW>
 __device__ __forceinline__
 void odd_even_device(int *to_sort, int size, int tab[]) {
     const int THREADS = (1 << THREADS_POW);
