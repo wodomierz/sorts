@@ -72,49 +72,12 @@ void prefsum(int *localPrefsums, int *maxPrefSums, int size) {
 
 __global__
 void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks, int size) {
-    __shared__ int bst[S_SIZE];
-    __shared__ int histogram[A][S_SIZE];
-
-
-    int x = blockIdx.x * blockDim.x * ELEMENTS_PER_THREAD + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-
-    int gthid = x + y * gridDim.x * blockDim.x * ELEMENTS_PER_THREAD;
-
-    int threadId = threadIdx.x;
-
-    if (threadId < S_SIZE) { //?
-        bst[threadId] = sample[threadId];
-        for (int a = 0; a < A; ++a) {
-            histogram[a][threadId] = 0;
-        }
-    }
-    __syncthreads();
-
-
-    for (int i = 0; i < ELEMENTS_PER_THREAD && gthid + i * THREADS_PER_BLOCK < size; ++i) {
-//    for (int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
-        //ke?
-
-        int j = findIndex(to_sort[gthid + i * THREADS_PER_BLOCK], bst);
-        atomicAdd(histogram[gthid % A] + j, 1);
-    }
-    __syncthreads();
-
-
-    if (threadId < S_SIZE) {
-        //bug?
-        for (int i = 1; i < A; ++i) {
-            histogram[0][threadId] += histogram[i][threadId];
-        }
-        int index = (threadId * number_of_blocks) + blockId;
-        atomicExch(prefsums + index, histogram[0][threadId]);
-    }
+    counters_dev<THREADS_PER_BLOCK, ELEMENTS_PER_THREAD, S_POW, ARRAYS_NUM>(to_sort, sample, prefsums, number_of_blocks, size);
 }
 
 __global__
 void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks, int size) {
+//    scatter_dev<THREADS_PER_BLOCK,ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
     __shared__ int bst[S_SIZE];
     __shared__ int histogram[S_SIZE];
 
