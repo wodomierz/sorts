@@ -47,7 +47,7 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
 
 
 
-double bitonic_sort(int* to_sort, int size, bool opt) {
+double bitonic_sort(int* to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0), "cannot acquire device");
@@ -71,9 +71,7 @@ double bitonic_sort(int* to_sort, int size, bool opt) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
-    double result;
-    result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
-
+    double result = run1(cuModule,power_n, deviceToSort, size, x_dim, y_dim);
 
     cuMemcpyDtoH((void*)to_sort, deviceToSort, size * sizeof(int));
 
