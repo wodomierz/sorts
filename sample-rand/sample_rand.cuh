@@ -134,12 +134,12 @@ void scatter_dev(int *in, int *out, int *sample, int *prefsums, int number_of_bl
     __shared__ int histogram[SampleSize];
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int thid_offset = blockId * BlockSize;
+    int threadId = threadIdx.x;
+    int thid_offset = blockId *BlockSize;
     in += thid_offset;
     size -= thid_offset;
 
-    int threadId = threadIdx.x;
-    if (threadId < SamplePow) { //?
+    if (threadId < SampleSize) { //?
         bst[threadId] = sample[threadId];
         histogram[threadId] = 0;
     }

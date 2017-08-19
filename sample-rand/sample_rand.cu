@@ -48,16 +48,16 @@ void sample(int *tab, int size, int seed, int plus, int *bst) {
 }
 
 
-__device__ __forceinline__
-int findIndex(int e, int *bst) {
-    int j = 1;
-    int k = S_POW;
-    while (k--) {
-        j = 2 * j + (e > bst[j - 1]);
-    }
-    j = j - S_SIZE; // bucket index
-    return j;
-}
+//__device__ __forceinline__
+//int findIndex(int e, int *bst) {
+//    int j = 1;
+//    int k = S_POW;
+//    while (k--) {
+//        j = 2 * j + (e > bst[j - 1]);
+//    }
+//    j = j - S_SIZE; // bucket index
+//    return j;
+//}
 
 
 __global__
@@ -77,34 +77,7 @@ void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks, in
 
 __global__
 void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks, int size) {
-//    scatter_dev<THREADS_PER_BLOCK,ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
-    __shared__ int bst[S_SIZE];
-    __shared__ int histogram[S_SIZE];
-
-    int x = blockIdx.x * BLOCK_SIZE + threadIdx.x;
-    int y = blockIdx.y + threadIdx.y;
-
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int gthid = x + y * gridDim.x * BLOCK_SIZE;
-    int threadId = threadIdx.x;
-    if (threadId < S_SIZE) { //?
-        bst[threadId] = sample[threadId];
-        histogram[threadId] = 0;
-    }
-    __syncthreads();
-
-    for (int i = 0; i < ELEMENTS_PER_THREAD && gthid + i * THREADS_PER_BLOCK < size; ++i) {
-        //ke?
-        int e = in[gthid + i * THREADS_PER_BLOCK];
-        int j = findIndex(e, bst);
-        int local_index = atomicAdd(histogram + j, 1);
-        int indexInPrefsums = (j * number_of_blocks) + blockId;
-        int offset = 0;
-        if (indexInPrefsums > 0) {
-            offset = prefsums[indexInPrefsums - 1];
-        }
-        out[offset + local_index] = e;
-    }
+    scatter_dev<THREADS_PER_BLOCK,ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
 }
 
 }
