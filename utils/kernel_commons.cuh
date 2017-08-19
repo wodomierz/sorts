@@ -10,10 +10,10 @@ int one_dimension_blockId() {
     return blockIdx.x + blockIdx.y * blockDim.x;
 }
 
-template <int BlockSize>
+template<int BlockSize>
 __device__ __forceinline__
 int one_dimension_offset() {
-    return one_dimension_blockId()*BlockSize;
+    return one_dimension_blockId() * BlockSize;
 }
 
 __device__ __forceinline__
@@ -33,7 +33,7 @@ void min_max(int *tab, int for_min, int for_max, int size) {
 __device__ __forceinline__
 void chujowy_sort_dev(int *to_sort, int size) {
     __syncthreads();
-    if (threadIdx.x ==0) {
+    if (threadIdx.x == 0) {
         for (int i = 1; i < size; ++i) {
             for (int j = 0; j < i; ++j) {
                 min_max(to_sort, j, i, size);
@@ -54,10 +54,10 @@ int getOrZero(int *tab, int i, int size) {
 }
 
 
-template <typename T>
+template<typename T>
 __device__ __forceinline__
-void swap(T& a, T&b) {
-    T c  = a;
+void swap(T &a, T &b) {
+    T c = a;
     a = b;
     b = c;
 }

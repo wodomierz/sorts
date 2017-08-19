@@ -17,7 +17,7 @@ void chujowy_sort(int *to_sort, int size) {
 
 __global__
 void sample(int *tab, int size, int seed, int plus, int *bst) {
-    sample_dev<SAMPLE_BLOCK, SAMPLE_THREADS,S_SIZE, AS>(tab, size, seed, plus, bst);
+    sample_dev<SAMPLE_BLOCK, SAMPLE_THREADS, S_SIZE, AS>(tab, size, seed, plus, bst);
 }
 
 __global__
@@ -32,12 +32,13 @@ void prefsum(int *localPrefsums, int *maxPrefSums, int size) {
 
 __global__
 void counters(int *to_sort, int *sample, int *prefsums, int number_of_blocks, int size) {
-    counters_dev<THREADS_PER_BLOCK, ELEMENTS_PER_THREAD, S_POW, ARRAYS_NUM>(to_sort, sample, prefsums, number_of_blocks, size);
+    counters_dev<THREADS_PER_BLOCK, ELEMENTS_PER_THREAD, S_POW, ARRAYS_NUM>(to_sort, sample, prefsums, number_of_blocks,
+                                                                            size);
 }
 
 __global__
 void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks, int size) {
-    scatter_dev<THREADS_PER_BLOCK,ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
+    scatter_dev<THREADS_PER_BLOCK, ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
 }
 
 }

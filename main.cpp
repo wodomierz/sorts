@@ -19,25 +19,23 @@
 using namespace std;
 
 
-
-
 vector<double> results1;
 vector<double> results;
 
 
-double res(vector<double>& results, vector<double>& results_opt) {
+double res(vector<double> &results, vector<double> &results_opt) {
     //res
     vector<double> diffs;
     double r = 0;
-    for (int i=1; i< results.size(); ++i) {
+    for (int i = 1; i < results.size(); ++i) {
         diffs.push_back(results[i] - results_opt[i]);
     }
     sort(diffs.begin(), diffs.end());
 
-    for (int i=1; i< diffs.size() -1; ++i) {
+    for (int i = 1; i < diffs.size() - 1; ++i) {
         r += diffs[i];
     }
-    return r/(diffs.size()-2);
+    return r / (diffs.size() - 2);
 }
 
 
@@ -77,9 +75,9 @@ double cleanTest(func_withtime f, int const *init, int n, string name) {
 }
 
 
-
 void cmpSorts(int n, int *initData) {
-    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n, "odd-even");
+    double m1 = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n,
+                          "odd-even");
     double m = cleanTest([](int *tab, int size) -> double { return bitonic_sort(tab, size); }, initData, n, "bitonic");
     results1.push_back(m1);
     results.push_back(m);
@@ -87,7 +85,7 @@ void cmpSorts(int n, int *initData) {
 
 void cmpSorts1(int n, int *initData) {
     double m1 = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "bit");
-    double m = cleanTestTime([](int *tab, int size) -> void {  std::sort(tab, tab + size); }, initData, n, "std");
+    double m = cleanTestTime([](int *tab, int size) -> void { std::sort(tab, tab + size); }, initData, n, "std");
     results1.push_back(m1);
     results.push_back(m);
 
@@ -128,7 +126,6 @@ void comparesorts(int n) {
 }
 
 
-
 void eff_tests() {
     srand(time(NULL));
 //    loggTitle("multiples of 1024");
@@ -149,7 +146,7 @@ void eff_tests() {
 //    }
 //    comparesorts(2048);
 
-    for (int i = 0; i <= 2; i ++) {
+    for (int i = 0; i <= 2; i++) {
         comparesorts(1024 * 1024 * 512);
     }
 
@@ -168,7 +165,7 @@ void testg(func_withtime sort, int n) {
     srand(time(NULL));
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
-        c[j] = n-j-1;
+        c[j] = n - j - 1;
 //                rand();
     }
 //    for (int j = 0; j< n; ++j) {
@@ -190,9 +187,9 @@ void testg(func_withtime sort, int n) {
 //            std::cout << first << endl;
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
-            printf("test %d %d %d %d \n",n, c[j], c[j + 1], j);
-            for (int i = -2; (i+j) < n && i < 10; ++i) {
-                cout << (i+j) << " " << c[i + j] << endl;
+            printf("test %d %d %d %d \n", n, c[j], c[j + 1], j);
+            for (int i = -2; (i + j) < n && i < 10; ++i) {
+                cout << (i + j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
             }
@@ -206,22 +203,23 @@ void testg(func_withtime sort, int n) {
             printf("\n");
         }
 //        if (!firsttime)
-            assert(c[j] == j);
-        if (c[j] > c[j + 1]) {firsttime = false;}
+        assert(c[j] == j);
+        if (c[j] > c[j + 1]) { firsttime = false; }
     }
-    printf("test %d ok\n",n);
+    printf("test %d ok\n", n);
     free(c);
 }
 
 void test_big(func_withtime sort);
+
 void test01(func_withtime sort);
 
-double radix1(int* tab, int size) {
+double radix1(int *tab, int size) {
     radixsort(tab, size);
 }
 
 
-double bitonic_sort1(int* tab, int size) {
+double bitonic_sort1(int *tab, int size) {
 // radixsort(tab, size);
     sampleRand(tab, size);
 //    odd_even(tab,size,true);
@@ -244,27 +242,27 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
-    testg(bitonic_sort1 , S_SIZE*S_SIZE*S_SIZE* S_SIZE*BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
 //    testg(bitonic_sort1 , 1024*1024);
 //    int z =30;
 //    while(--z) {
@@ -301,7 +299,7 @@ void test01(func_withtime sort) {
     for (int j = 0; j < (n - 1); ++j) {
         if (c[j] > c[j + 1]) {
             printf("test01");
-            for (int i = 0 ; i < n; ++i) {
+            for (int i = 0; i < n; ++i) {
                 printf(" %d", c[i]);
             }
             printf("\n");
@@ -328,7 +326,7 @@ void test0(func_withtime sort) {
     sort(c, n);
     for (int j = 0; j < (n - 1); ++j) {
         if (c[j] > c[j + 1]) {
-            printf("test0 %d %d %d\n",j, c[j], c[j + 1]);
+            printf("test0 %d %d %d\n", j, c[j], c[j + 1]);
 
         }
         assert(c[j] <= c[j + 1]);
@@ -354,8 +352,8 @@ void test_big(func_withtime sort) {
         for (int j = 0; j < n; ++j) {
             d[j] = rand();
         }
-        for (int j = 0; j< n; ++j) {
-            d[j] = d[j]&((1<<30) - 1);
+        for (int j = 0; j < n; ++j) {
+            d[j] = d[j] & ((1 << 30) - 1);
         }
         sort(d, n);
         for (int j = 0; j < (n - 1); ++j) {

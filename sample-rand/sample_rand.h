@@ -30,9 +30,7 @@
 #define SAMPLE_BLOCK (AS*S_SIZE)
 #define SAMPLE_THREADS 1024
 
-void sampleRand(int*, int);
-
-
+void sampleRand(int *, int);
 
 
 #endif //SORTS_SAMPLE_RAND_H

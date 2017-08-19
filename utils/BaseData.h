@@ -14,7 +14,8 @@ public:
     int y_dim;
     int number_of_blocks;
     int size;
-    BaseData(int size, int block_size): size(size) {
+
+    BaseData(int size, int block_size) : size(size) {
         number_of_blocks = ceil_div(size, block_size);
         x_dim = number_of_blocks > MAX_GRID_DIM ? MAX_GRID_DIM : number_of_blocks;
         y_dim = ceil_div(number_of_blocks, x_dim);

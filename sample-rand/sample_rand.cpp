@@ -29,8 +29,8 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
 
 
 void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_rand::Context &memory) {
-    if (memory.baseData.size <=M) {
-        DevArray* seqs = cuMemAllocH<DevArray>(1);
+    if (memory.baseData.size <= M) {
+        DevArray *seqs = cuMemAllocH<DevArray>(1);
         seqs[0] = DevArray(0, memory.baseData.size);
         quickDevice.lqsort(seqs, 1, memory.deviceToSort, memory.out);
         memory.moveResult();
@@ -49,7 +49,7 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
         if (size > 1) {
             sample_rand::Context mem(memory, i);
             //could be more efficient
-            sampleRand(device,quickDevice, mem);
+            sampleRand(device, quickDevice, mem);
         }
 
     }
@@ -68,7 +68,7 @@ void sampleRand(int *to_sort, int size) {
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
     PRINT1("beforedsa %d\n", size);
-    sampleRand(device,quick_device, memory);
+    sampleRand(device, quick_device, memory);
     PRINT("after\n");
 
     cuMemcpyDtoH((void *) to_sort, memory.deviceToSort, size * sizeof(int));
