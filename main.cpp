@@ -242,7 +242,7 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+    testg(bitonic_sort1, S_SIZE * BLOCK_SIZE);
     testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
     testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
     testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);

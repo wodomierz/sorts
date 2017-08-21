@@ -13,6 +13,7 @@ namespace sample_rand {
     class Context {
     public:
         BaseData baseData;
+        int offset;
         int *sample_offsets;
         CUdeviceptr blockPrefsums;
         CUdeviceptr deviceToSort;
@@ -20,20 +21,26 @@ namespace sample_rand {
         CUdeviceptr bstPtr;
 
 
+        int allPrefsumsCapacity();
+        int maxNumberOfBigWorkUnits();
         int prefsumSize();
 
         void moveResult() {
             cuMemcpy(deviceToSort, out, sizeof(int) * baseData.size);
-            cuMemsetD32(out, 0, baseData.size);
+//            cuMemsetD32(out, 0, baseData.size);
         }
 
-        void localClean();
+//        void localClean();
 
         void clean();
 
-        Context(int);
+        Context(int size);
+        Context(Context &globalContext,int offset,int prefsum_offset, int size, int big_work_offset);
 
-        Context(Context &memory, int);
+//        Context(Context &memory, int);
+
+        CUdeviceptr relativeIn();
+        CUdeviceptr relativeOut();
     };
 
 }

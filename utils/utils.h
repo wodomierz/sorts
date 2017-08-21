@@ -65,5 +65,10 @@ CUdeviceptr addIntOffset(CUdeviceptr ptr, int offset);
 
 int expand_to_power_of_2(int number, int power);
 
+struct CudaArray {
+    CUdeviceptr array;
+    int size;
+};
+
 #endif //SORTS_UTILS_H
 

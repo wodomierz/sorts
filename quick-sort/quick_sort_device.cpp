@@ -19,12 +19,12 @@ namespace quick {
         cuCtxSynchronize();
     }
 
-    void Device::lqsort(DevArray *seqs, int seqs_count, CUdeviceptr &in, CUdeviceptr &out) {
+    void Device::lqsort(DevArray *seqs, int seqs_count, CUdeviceptr &in, CUdeviceptr &buffer) {
         int x_dim = seqs_count > MAX_GRID_DIM ? MAX_GRID_DIM : seqs_count;
         int y_dim = ceil_div(seqs_count, x_dim);
-//        PRINT1("launch lqsort %d %d %d\n", seqs_count, x_dim, y_dim);
+        PRINT1("launch lqsort %d %d %d\n", seqs_count, x_dim, y_dim);
 
-        void *args[]{&seqs, &in, &out};
+        void *args[]{&seqs, &in, &buffer};
         safeLaunch1Dim(lqsortDev, x_dim, y_dim, 1 << QUICKTHREADS_POW, args);
         cuCtxSynchronize();
     }

@@ -28,32 +28,61 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
 }
 
 
-void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_rand::Context &memory) {
-    if (memory.baseData.size <= M) {
-        DevArray *seqs = cuMemAllocH<DevArray>(1);
-        seqs[0] = DevArray(0, memory.baseData.size);
-        quickDevice.lqsort(seqs, 1, memory.deviceToSort, memory.out);
-        memory.moveResult();
-        cuMemFreeHost(seqs);
-//        device.chujowy();
-        return;
-    }
+
+
+void sample_sort_big_work_unit(sample_rand::Device &device, sample_rand::Context &memory) {
     device.sample_dev(memory);
     device.counters(memory);
     prefsum(memory, device);
     device.scatter(memory);
-    memory.moveResult();
-    // could be more efficient
-    for (int i = 0; i < S_SIZE; ++i) {
-        int size = memory.sample_offsets[i + 1] - memory.sample_offsets[i];
-        if (size > 1) {
-            sample_rand::Context mem(memory, i);
-            //could be more efficient
-            sampleRand(device, quickDevice, mem);
-        }
+//    memory.moveResult(); ??
+}
 
+
+void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_rand::Context &globalContext) {
+    std::vector<DevArray> smallSize;
+    std::vector<sample_rand::Context> bigSize;
+    std::vector<sample_rand::Context> news;
+    bigSize.push_back(globalContext);
+    while(!bigSize.empty()) {
+        cuMemsetD32(globalContext.blockPrefsums, 0, globalContext.allPrefsumsCapacity());
+        for (sample_rand::Context& workUnit: bigSize) {
+            sample_sort_big_work_unit(device, workUnit);
+        }
+        //move result here or in kernel??
+        globalContext.moveResult(); //???
+//        cuCtxSynchronize(); //to obtain offsets
+
+        //async???
+        int prefsum_offset = 0;
+        for (sample_rand::Context& workUnit: bigSize) {
+            for (int i=0; i < S_SIZE; i++) {
+                DevArray devArray = {workUnit.sample_offsets[i] + workUnit.offset, workUnit.sample_offsets[i+1]+ workUnit.offset};
+                int size = arraySize(devArray);
+                if (size > 1) {
+                    if (size <= SAMPLE_OTHER_SORT_LIM) {
+                        smallSize.push_back(devArray);
+                    } else {
+                        sample_rand::Context context(globalContext, devArray.start, size, prefsum_offset, news.size());
+                        prefsum_offset += context.prefsumSize();
+                        news.push_back(context);
+                    }
+                }
+            }
+        }
+        bigSize.clear();
+        bigSize.insert(bigSize.end(), news.begin(), news.end());
+        news.clear();
     }
-    memory.localClean();
+    cuCtxSynchronize();
+    //async?
+    DevArray* seqs = cuMemAllocH<DevArray>(smallSize.size());
+    for (int i=0; i < smallSize.size(); ++i) {
+        seqs[i] = smallSize[i];
+    }
+    quickDevice.lqsort(seqs, smallSize.size(), globalContext.deviceToSort, globalContext.out);
+    cuMemFreeHost(seqs);
+
 }
 
 
