@@ -7,6 +7,7 @@
 #include <list>
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 
 int pivot(CUdeviceptr to_sort, int size, quick::Device &device) {
     //TODO
@@ -85,34 +86,32 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     std::vector<WorkUnit> work = {WorkUnit(DevArray(0, size), start_pivot)};
     std::vector<WorkUnit> done;
 
-    int block_size = (1 << QUICKTHREADS_POW) * 32;
+    int block_size = (1 << QUICKTHREADS_POW) * 16;
 
     int max_seq = ceil_div(size, block_size);
 
-    while (!work.empty() && work.size() + done.size() <= max_seq) {
+    Block *blocks = cuMemAllocH<Block>(2*max_seq);
+    SharedVars *parents = cuMemAllocH<SharedVars>(max_seq);
+    WorkUnit *news = cuMemAllocH<WorkUnit>(2 * max_seq);
+
+
+    while (!work.empty() && work.size() + done.size() <= max_seq)
+    {
         int total_block_count = 0;
         for (WorkUnit unit : work) {
-            assert(arraySize(unit.seq) > block_size);
             int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
             total_block_count += block_count;
         }
         //consider vector and register array of this vector??
-        Block *blocks = cuMemAllocH<Block>(total_block_count);
-
-        SharedVars *parents = cuMemAllocH<SharedVars>(work.size());
-
-        prepareBlocks(blocks, parents, work, block_size);
-
         int seq_num = work.size();
-        //TODO
-        WorkUnit *news = cuMemAllocH<WorkUnit>(2 * seq_num);
-
+        prepareBlocks(blocks, parents, work, block_size);
         device.gqsort(blocks, total_block_count, in, out, news);
+        cuCtxSynchronize();
         work.clear();
         for (int i = 0; i < seq_num; ++i) {
             for (int j = 0; j < 2; ++j) {
                 WorkUnit &workUnit = news[2 * i + j];
-                if (arraySize(workUnit.seq) <= block_size) { //diff algo
+                if (arraySize(workUnit.seq) < block_size) { //diff algo
                     done.push_back(workUnit);
                 } else {
                     work.push_back(workUnit);
@@ -121,14 +120,8 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         }
         //todo improve
         cuMemcpyDtoD(in, out, size * sizeof(int));
-
-        cuMemFreeHost(blocks);
-        cuMemFreeHost(news);
-        cuMemFreeHost(parents);
     }
-
     done.insert(done.end(), work.begin(), work.end());
-    //improve adding to done
 
     DevArray *doneArrays = cuMemAllocH<DevArray>(done.size());
     for (int i = 0; i < done.size(); i++) {
@@ -137,14 +130,17 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
 
     //TODO improve
     device.lqsort(doneArrays, done.size(), in, out);
+
     cuMemFreeHost(doneArrays);
+    cuMemFreeHost(blocks);
+    cuMemFreeHost(news);
+    cuMemFreeHost(parents);
 }
 
 
 void quick_sort_device(CUdeviceptr to_sort, int size) {
     CUdeviceptr in = to_sort;
     CUdeviceptr buffer = cuAllocInts(size);
-    cuMemsetD32(buffer, 0, size);
     sort(size, in, buffer);
     cuMemFree(buffer);
 }

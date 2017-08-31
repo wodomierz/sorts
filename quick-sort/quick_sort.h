@@ -8,7 +8,7 @@
 #include <cuda.h>
 #include "../utils/utils.h"
 
-#define QUICKTHREADS_POW 9
+#define QUICKTHREADS_POW 10
 
 void quick_sort(int *to_sort, int size);
 

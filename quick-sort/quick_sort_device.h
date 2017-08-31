@@ -21,7 +21,7 @@ namespace quick {
 
         int pivot(CUdeviceptr to_sort, int size);
 
-        void gqsort(Block *blocks, int blocks_count, CUdeviceptr in, CUdeviceptr out, WorkUnit *news);
+        void gqsort(Block *blocks, int blocks_count, CUdeviceptr in, CUdeviceptr out, WorkUnit* news);
 
         void lqsort(DevArray *seqs, int seq_count, CUdeviceptr &to_sort, CUdeviceptr &buffer);
     };

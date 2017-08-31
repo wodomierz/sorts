@@ -84,8 +84,8 @@ void cmpSorts(int n, int *initData) {
 }
 
 void cmpSorts1(int n, int *initData) {
-    double m1 = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "bit");
-    double m = cleanTestTime([](int *tab, int size) -> void { std::sort(tab, tab + size); }, initData, n, "std");
+    double m1 = cleanTestTime([](int *tab, int size) -> void { quick_sort(tab, size); }, initData, n, "bit");
+    double m = cleanTestTime([](int *tab, int size) -> void { bitonic_sort(tab, size); }, initData, n, "std");
     results1.push_back(m1);
     results.push_back(m);
 
@@ -147,7 +147,7 @@ void eff_tests() {
 //    comparesorts(2048);
 
     for (int i = 0; i <= 2; i++) {
-        comparesorts(1024 * 1024 * 512);
+        comparesorts(1024 * 1024 * 256);
     }
 
 
@@ -161,7 +161,7 @@ void eff_tests() {
 }
 
 
-void testg(func_withtime sort, int n) {
+void testg(func_t sort, int n) {
     srand(time(NULL));
     int *c = (int *) malloc(n * sizeof(int));
     for (int j = 0; j < n; ++j) {
@@ -219,10 +219,11 @@ double radix1(int *tab, int size) {
 }
 
 
-double bitonic_sort1(int *tab, int size) {
+void bitonic_sort1(int *tab, int size) {
 // radixsort(tab, size);
-    sampleRand(tab, size);
-//    odd_even(tab,size,true);
+//    sampleRand(tab, size);
+    quick_sort(tab, size);
+//    odd_even(tab,size);
 }
 
 void test_correctness() {
@@ -234,35 +235,25 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*1024*2);
 //    testg(bitonic_sort1, 1024*1024*2);
 //    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*2);
-//    testg(bitonic_sort1, 1024*1024*8);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*4);
+    testg(bitonic_sort1, 1024*1024*8);
+    testg(bitonic_sort1, 1024*1024*16);
+    testg(bitonic_sort1, 1024*1024*32);
+    testg(bitonic_sort1, 1024*1024*216);
+//    testg(bitonic_sort1, 1024*1024*32);
+    int z = 1000;
+    while(z--) {
+        testg(sampleRand, 1<<28);
+    }
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);
 //    test_big(bitonic_sort1);
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
 //    testg(bitonic_sort1, 1024*1024*128);
-    testg(bitonic_sort1, S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
-    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
+//    testg(bitonic_sort1, S_SIZE * BLOCK_SIZE);
+//    testg(bitonic_sort1, S_SIZE * S_SIZE * S_SIZE * S_SIZE * BLOCK_SIZE);
 //    testg(bitonic_sort1 , 1024*1024);
 //    int z =30;
 //    while(--z) {
@@ -283,8 +274,8 @@ int main() {
 
 
 //
-//    eff_tests();
-    test_correctness();
+    eff_tests();
+//    test_correctness();
     return 0;
 }
 
