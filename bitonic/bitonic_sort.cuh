@@ -4,10 +4,10 @@
 #include "../utils/cuda_device.h"
 #include "../utils/kernel_commons.cuh"
 
-template<int THREADS_POW>
+template<int ThreadsPow>
 __device__ __forceinline__
 void bitonic_merge_device(int *to_sort, int size, int tab[]) {
-    const int THREADS = (1 << THREADS_POW);
+    const int THREADS = (1 << ThreadsPow);
     const int LOCAL_BLOCK = (THREADS * 2);
 
     int threadId = threadIdx.x;
@@ -18,7 +18,7 @@ void bitonic_merge_device(int *to_sort, int size, int tab[]) {
     __syncthreads();
 
     for (int d_triangle = 2, d_half_traingle_p = 0;
-         d_half_traingle_p <= THREADS_POW;
+         d_half_traingle_p <= ThreadsPow;
          d_half_traingle_p++, d_triangle <<= 1) {
 
         int wireThid = threadId + ((threadId >> d_half_traingle_p) << d_half_traingle_p);

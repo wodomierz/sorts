@@ -41,4 +41,10 @@ void scatter(int *in, int *out, int *sample, int *prefsums, int number_of_blocks
     scatter_dev<THREADS_PER_BLOCK, ELEMENTS_PER_THREAD, S_POW>(in, out, sample, prefsums, number_of_blocks, size);
 }
 
+//todo
+__global__
+void sumSums(int* offsetPrefSums, int size) {
+    global_prefsums(offsetPrefSums, size);
+}
+
 }

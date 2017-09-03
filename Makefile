@@ -15,7 +15,7 @@ LIB_CUDA := -lcuda
 
 
 # Options
-NVCCOPTIONS = -arch sm_35 -ptx
+NVCCOPTIONS = -arch sm_52 -ptx
 
 # Common flags
 COMMONFLAGS += $(INCLUDES)
@@ -27,23 +27,26 @@ CFLAGS += $(COMMONFLAGS)
 
 CUDA_OBJS = bitonic/bitonic_sort.ptx odd-even/odd_even.ptx radix/radixsort.ptx \
 sample-rand/sample_rand.ptx quick-sort/quick_sort.ptx
-OBJS =  main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o \
+#OBJS = thrust/thrust_sort_forwarder.o thrust/thrust_sort.o
+OBJS = main.cpp.o bitonic/bitonic_sort.cpp.o odd-even/odd_even.cpp.o utils/utils.cpp.o\
 radix/radixsort.cpp.o sample-rand/sample_rand.cpp.o \
 sample-rand/sample_rand_context.cpp.o sample-rand/sample_rand_device.cpp.o sample-rand/PrefsumContext.cpp.o \
 quick-sort/quick_sort_device.cpp.o quick-sort/quick_sort.cpp.o quick-sort/quick_debug.cpp.o
 
-TARGET = solution.x
+TARGET = solution_new.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 
-.SUFFIXES:	.c	.cpp	.cu	.o	
+.SUFFIXES:	.c	.cpp	.cu	.o
 %.c.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
 
 %.ptx: %.cu
 	$(NVCC) $(NVCCFLAGS) $< -o $@
 
 %.cpp.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 
 $(TARGET): prepare $(OBJS) $(CUDA_OBJS)
 	$(LINKLINE)

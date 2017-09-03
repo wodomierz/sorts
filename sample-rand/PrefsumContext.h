@@ -12,11 +12,12 @@ namespace sample_rand {
     class PrefsumContext {
     public:
         BaseData baseData;
-        int *batchSums;
+        CUdeviceptr batchSums;
+//        int *batchSums;
 
-        void clean();
+//        void clean();
 
-        PrefsumContext(int);
+        PrefsumContext(int, CUdeviceptr batchSums);
     };
 }
 

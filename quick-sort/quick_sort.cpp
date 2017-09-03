@@ -152,7 +152,7 @@ void quick_sort(int *to_sort, int size) {
     manageResult(cuDeviceGet(&cuDevice, 0));
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
 
-    PRINT1("tutej\n");
+//    PRINT1("tutej\n");
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
     cuMemcpyHtoD(in, to_sort, size * sizeof(int));

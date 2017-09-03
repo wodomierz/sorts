@@ -6,10 +6,15 @@
 namespace sample_rand {
 
     Context::Context(int size) : baseData(size, BLOCK_SIZE), offset(0) {
+
+
         sample_offsets = cuAllocHostInts((S_SIZE + 1)*maxNumberOfBigWorkUnits());
         sample_offsets[0] = 0;
         bstPtr = cuAllocInts(S_SIZE*maxNumberOfBigWorkUnits());
         blockPrefsums = cuAllocInts(allPrefsumsCapacity());
+
+        prefsumsMem = cuAllocD<int>(4* (ceil_div(allPrefsumsCapacity(), PREFSUM_BLOCK_SIZE)));
+
         cuMemsetD32(blockPrefsums, 0, prefsumSize());
 
         deviceToSort = cuAllocInts(size);
@@ -19,14 +24,14 @@ namespace sample_rand {
     }
 
     void Context::clean() {
-
+        cuMemFree(prefsumsMem);
         cuMemFree(deviceToSort);
         cuMemFree(out);
         cuMemFree(blockPrefsums);
         cuMemFree(bstPtr);
     }
 
-    Context::Context(Context &globalContext,int offset,int size, int prefsum_offset,int big_work_offset) : Context(globalContext) {
+    Context::Context(Context &globalContext,int offset,int size, int prefsum_offset,int prefsumMemOff, int big_work_offset) : Context(globalContext) {
         this->offset = offset;
         this->baseData = BaseData(size, BLOCK_SIZE);
 
@@ -36,7 +41,9 @@ namespace sample_rand {
         bstPtr = addIntOffset(bstPtr, big_work_offset * S_SIZE);
         sample_offsets = sample_offsets + big_work_offset * (S_SIZE + 1);
         sample_offsets[0] = 0;
+
         blockPrefsums = addIntOffset(blockPrefsums, prefsum_offset);
+        prefsumsMem = addIntOffset(prefsumsMem, prefsumMemOff);
     }
 
 

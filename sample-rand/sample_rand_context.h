@@ -15,6 +15,8 @@ namespace sample_rand {
         BaseData baseData;
         int offset;
         int *sample_offsets;
+        CUdeviceptr prefsumsMem;
+
         CUdeviceptr blockPrefsums;
         CUdeviceptr deviceToSort;
         CUdeviceptr out;
@@ -35,7 +37,7 @@ namespace sample_rand {
         void clean();
 
         Context(int size);
-        Context(Context &globalContext,int offset,int prefsum_offset, int size, int big_work_offset);
+        Context(Context &globalContext,int offset,int prefsum_offset,int prefMemOff, int size, int big_work_offset);
 
 //        Context(Context &memory, int);
 

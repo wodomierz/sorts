@@ -180,4 +180,5 @@ void sample_dev(int *tab, int size, int seed, int plus, int *bst) {
 }
 
 
+
 #endif //SORTS_SAMPLE_RAND_CUH

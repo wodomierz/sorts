@@ -38,6 +38,7 @@ void print_Devtab(CUdeviceptr &dtab, int size, int prints, int from = 0, const c
 #define manageResultWithMessage(error_code, comment) (manageErrorWithMessage((error_code), (comment), __LINE__, __FILE__))
 #define manageResult(error_code) (manageError((error_code), __LINE__, __FILE__))
 #define safeLaunch1Dim(f, x, y, threads, args) (manageResult(cuLaunchKernel((f), (x),(y),1,(threads),1,1,0,0,(args),0)))
+#define safeLaunch1DimStream(f, x, y, threads, args, stream) (manageResult(cuLaunchKernel((f), (x),(y),1,(threads),1,1,0,(stream),(args),0)))
 
 int ceil_div(int, int);
 

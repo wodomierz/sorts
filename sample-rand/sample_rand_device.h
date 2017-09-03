@@ -19,6 +19,7 @@ namespace sample_rand {
         CUmodule cuModule;
         CUcontext cuContext;
         CUfunction prefsumDev;
+        CUfunction sumSums;
         CUfunction prefsumDev1;
         CUfunction countersCU;
         CUfunction scatterCU;
@@ -30,21 +31,21 @@ namespace sample_rand {
 
         Device();
 
-        void localPrefSums(sample_rand::Context &context, sample_rand::PrefsumContext &prefsumMemory);
+        void localPrefSums(sample_rand::Context &context, sample_rand::PrefsumContext &prefsumMemory, CUstream cUstream);
 
-        void prefsumOfBatchSums(sample_rand::PrefsumContext &prefsumMemory);
+        void prefsumOfBatchSums(sample_rand::PrefsumContext &prefsumMemory, CUstream cUstream);
 
-        void globalPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory);
+        void globalPrefSums(sample_rand::Context &memory, sample_rand::PrefsumContext &prefsumMemory, CUstream cUstream);
 
         void chujowy(sample_rand::Context &memory);
 
-        void scatter(sample_rand::Context &memory);
+        void scatter(sample_rand::Context &memory, CUstream);
 
-        void counters(sample_rand::Context &memory);
+        void counters(sample_rand::Context &memory, CUstream);
 
-        void odd_even(sample_rand::Context &memory);
+        void odd_even(sample_rand::Context &memory, CUstream);
 
-        void sample_dev(sample_rand::Context &memory);
+        void sample_dev(sample_rand::Context &memory, CUstream);
 
     };
 }

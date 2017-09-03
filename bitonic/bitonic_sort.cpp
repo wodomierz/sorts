@@ -26,27 +26,27 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
 
     void *args[1] = {&deviceToSort};
     safeLaunch1Dim(bitonic_merge2, x_dim, y_dim, THREADS_IN_BLOCK, args);
-    cuCtxSynchronize();
+//    cuCtxSynchronize();
 
     for (int d_half_traingle_p = 11; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
         void *args1[3] = {&deviceToSort, &d_half_traingle_p, &size};
 
         safeLaunch1Dim(bitonic_triangle_merge, x_dim, y_dim, THREADS_IN_BLOCK, args1);
-        cuCtxSynchronize();
+//        cuCtxSynchronize();
         for (int d_p = d_half_traingle_p - 1; d_p >= 0; d_p--) {
             void *args2[3] = {&deviceToSort, &d_p, &size};
             safeLaunch1Dim(bitonic_merge, x_dim, y_dim, THREADS_IN_BLOCK,args2);
-            cuCtxSynchronize();
+//            cuCtxSynchronize();
         }
     }
     double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
-    std::cout << "Time for " << "b opt wchuj" << ": " << delta << " ms"
-              << std::endl;
+//    std::cout << "Time for " << "b opt wchuj" << ": " << delta << " ms"
+//              << std::endl;
     return delta;
 }
 
 
-double bitonic_sort(int *to_sort, int size) {
+void bitonic_sort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
@@ -77,6 +77,5 @@ double bitonic_sort(int *to_sort, int size) {
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
-    return result;
 }
 

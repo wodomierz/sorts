@@ -16,25 +16,34 @@
 
 using namespace std;
 
-inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device) {
-    sample_rand::PrefsumContext prefsumMemory(memory.prefsumSize());
-    device.localPrefSums(memory, prefsumMemory);
+inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device, CUstream cUstream) {
+    sample_rand::PrefsumContext prefsumMemory(memory.prefsumSize(), memory.prefsumsMem);
+    device.localPrefSums(memory, prefsumMemory, cUstream);
 
-    device.prefsumOfBatchSums(prefsumMemory);
+//    cuCtxSynchronize();
+//    print_Devtab(prefsumMemory.batchSums, memory.baseData.number_of_blocks + 1, 20,0,"Bef");
+//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(), 20,0,"Bef");
+    device.prefsumOfBatchSums(prefsumMemory, cUstream);
+//    print_Devtab(prefsumMemory.batchSums, memory.baseData.number_of_blocks + 1,20, 0,"Aft");
 
+//    cuCtxSynchronize();
 
-    device.globalPrefSums(memory, prefsumMemory);
-    prefsumMemory.clean();
+    device.globalPrefSums(memory, prefsumMemory, cUstream);
+//    prefsumMemory.clean();
 }
 
 
 
 
-void sample_sort_big_work_unit(sample_rand::Device &device, sample_rand::Context &memory) {
-    device.sample_dev(memory);
-    device.counters(memory);
-    prefsum(memory, device);
-    device.scatter(memory);
+void sample_sort_big_work_unit(sample_rand::Device &device, sample_rand::Context &memory, CUstream stream) {
+    device.sample_dev(memory, stream);
+//    cuCtxSynchronize();
+    device.counters(memory, stream);
+//    cuCtxSynchronize();
+    prefsum(memory, device, stream);
+//    cuCtxSynchronize();
+    device.scatter(memory, stream);
+//    cuCtxSynchronize();
 //    memory.moveResult(); ??
 }
 
@@ -44,17 +53,44 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
     std::vector<sample_rand::Context> bigSize;
     std::vector<sample_rand::Context> news;
     bigSize.push_back(globalContext);
+
+    long totalTim = 0;
+
+
+    CUstream streams[128];
+    for (int i=0;i<128; ++i) {
+//        streams[i] = 0;
+        cuStreamCreate(streams + i, 0);
+    }
+
     while(!bigSize.empty()) {
         cuMemsetD32(globalContext.blockPrefsums, 0, globalContext.allPrefsumsCapacity());
-        for (sample_rand::Context& workUnit: bigSize) {
-            sample_sort_big_work_unit(device, workUnit);
+
+        for (int i=0; i< bigSize.size(); ++i) {
+            std::clock_t start = std::clock();
+            sample_sort_big_work_unit(device, bigSize[i], streams[i%128]);
+            long delta = (std::clock() - start) / 1000;
+            PRINT1("delta %ld\n", delta);
+
+//            cuCtxSynchronize();
         }
+        //sync?
+        cuCtxSynchronize();
+
+//        for (sample_rand::Context& workUnit: bigSize) {
+//            std::clock_t start = std::clock();
+//            sample_sort_big_work_unit(device, workUnit);
+//            long delta = (std::clock() - start) / 1000;
+//            PRINT1("delta %ld\n", delta);
+//            totalTim += delta;
+//        }
         //move result here or in kernel??
         globalContext.moveResult(); //???
 //        cuCtxSynchronize(); //to obtain offsets
 
         //async???
         int prefsum_offset = 0;
+        int prefMemOff = 0;
         for (sample_rand::Context& workUnit: bigSize) {
             for (int i=0; i < S_SIZE; i++) {
                 DevArray devArray = {workUnit.sample_offsets[i] + workUnit.offset, workUnit.sample_offsets[i+1]+ workUnit.offset};
@@ -63,8 +99,9 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
                     if (size <= SAMPLE_OTHER_SORT_LIM) {
                         smallSize.push_back(devArray);
                     } else {
-                        sample_rand::Context context(globalContext, devArray.start, size, prefsum_offset, news.size());
+                        sample_rand::Context context(globalContext, devArray.start, size, prefsum_offset,prefMemOff, news.size());
                         prefsum_offset += context.prefsumSize();
+                        prefMemOff += (ceil_div(context.prefsumSize(), PREFSUM_BLOCK_SIZE) + 1);
                         news.push_back(context);
                     }
                 }
@@ -83,6 +120,9 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
     quickDevice.lqsort(seqs, smallSize.size(), globalContext.deviceToSort, globalContext.out);
     cuMemFreeHost(seqs);
 
+    for (int i=0;i<128; ++i) {
+        cuStreamDestroy(streams[i]);
+    }
 }
 
 

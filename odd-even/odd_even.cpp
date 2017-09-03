@@ -23,28 +23,28 @@ double run1(CUmodule cuModule, CUdeviceptr deviceToSort, int power, int x_dim, i
 
     void *args[1] = {&deviceToSort};
     safeLaunch1Dim(odd_even, x_dim, y_dim, THREADS_IN_BLOCK, args);
-    cuCtxSynchronize();
+//    cuCtxSynchronize();
 
 
     for (int pow__half_batch = 11; pow__half_batch <= power - 1; pow__half_batch++) {
         int half_batch = 1 << pow__half_batch;
         void *args1[3] = {&deviceToSort, &pow__half_batch, &size};
         safeLaunch1Dim(odd_even_phase1, x_dim, y_dim, THREADS_IN_BLOCK, args1);
-        cuCtxSynchronize();
+//        cuCtxSynchronize();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
             void *args2[4] = {&deviceToSort, &d_power, &half_batch, &size};
             safeLaunch1Dim(odd_even_phase2, x_dim, y_dim, THREADS_IN_BLOCK, args2);
-            cuCtxSynchronize();
+//            cuCtxSynchronize();
         }
 
     }
     double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
-    std::cout << "Time for " << "oe opt" << ": " << delta << " ms"
-              << std::endl;
+//    std::cout << "Time for " << "oe opt" << ": " << delta << " ms"
+//              << std::endl;
     return delta;
 }
 
-double odd_even(int *to_sort, int size) {
+void odd_even(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
@@ -83,6 +83,5 @@ double odd_even(int *to_sort, int size) {
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
-    return result;
 }
 
