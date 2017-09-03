@@ -103,7 +103,6 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     if (threadIdx.x == Threads - 1 && atomicSub(&(parent->block_count), 1) == 1) {
         for (i = parent->seq.start; i < parent->seq.end; i++) {
             out[i] = pivot;
-            in[i] = pivot;
         }
         l_pivot = median(out, parent->old_seq.start, parent->seq.start);
         g_pivot = median(out, parent->seq.end, parent->old_seq.end);
@@ -123,7 +122,9 @@ void altOrPush(
     int *tab) {
     static int OtherSortLimit = (1 << OtherSortPow);
     if (devArray.end - devArray.start <= OtherSortLimit) {
-        bitonic_merge_device<OtherSortPow - 1>(out + devArray.start, arraySize(devArray), tab);
+        if (arraySize(devArray) > 1) {
+            bitonic_merge_device<OtherSortPow - 1>(out + devArray.start, arraySize(devArray), tab);
+        }
     } else {
         if (threadIdx.x == 0) work_stack[++stackIndex] = devArray;
     }

@@ -119,8 +119,8 @@ long avg(vector<double> v) {
     return std::lround(acc / v.size());
 }
 
-void testAvg(int *initData, int n, data_provider provider) {
-    int times = 8;
+void testAvg(int *initData, int n, data_provider provider, int times) {
+//    int times = 8;
     int parallel_times = 3;
 
     allres.clear();
@@ -167,6 +167,14 @@ void descDP(int* tab, int size) {
     }
 }
 
+void zeroDP(int* tab, int size) {
+    srand(time(NULL));
+    int c = rand();
+    for (int j = 0; j < size; ++j) {
+        tab[j] = c;
+    }
+}
+
 
 
 
@@ -192,12 +200,16 @@ void allTests(int n) {
     int *tab = (int *) malloc(n * sizeof(int));
 
     loggTitle("rand");
-    testAvg(tab, n, randDP);
+    testAvg(tab, n, randDP, 1);
+
+    loggTitle("zero");
+    testAvg(tab, n, zeroDP, 1);
+
     loggTitle("asc");
-    testAvg(tab, n, ascDP);
+    testAvg(tab, n, ascDP, 1);
 
     loggTitle("desc");
-    testAvg(tab, n, descDP);
+    testAvg(tab, n, descDP, 1);
     free(tab);
 }
 
@@ -271,6 +283,32 @@ void eff_tests() {
 }
 
 
+void testz(func_t sort, int n) {
+
+    srand(time(NULL));
+    int cst =rand();
+    int *c = (int *) malloc(n * sizeof(int));
+    for (int j = 0; j < n; ++j) {
+        c[j] = cst;
+    }
+    sort(c, n);
+
+    for (int j = 0; j < (n - 1); ++j) {
+        if (c[j] != cst) {
+            printf("test %d %d %d %d \n", n, c[j], c[j + 1], j);
+            for (int i = -2; (i + j) < n && i < 10; ++i) {
+                cout << (i + j) << " " << c[i + j] << endl;
+            }
+            printf("\n");
+        }
+        assert(c[j] == cst);
+    }
+    printf("test %d ok\n", n);
+    free(c);
+}
+
+
+
 void testg(func_t sort, int n) {
     srand(time(NULL));
     int *c = (int *) malloc(n * sizeof(int));
@@ -282,7 +320,6 @@ void testg(func_t sort, int n) {
 //        c[j] = c[j]&((1<<31) - 1);
 //    }
     sort(c, n);
-    int bucket_size = n / 1024;
 //    for (int r = 0; r < n; r += bucket_size) {
 //        std::sort(c +  r , c + r + bucket_size);
 //    }
@@ -357,9 +394,10 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*32);
+    testz(quick_sort, 1<<22);
     int z = 1000;
     while(z--) {
-        testg(bitonic_sort1, 1<<28);
+        testz(quick_sort, 1<<28);
     }
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);

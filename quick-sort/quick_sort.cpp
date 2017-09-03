@@ -106,13 +106,16 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         int seq_num = work.size();
         prepareBlocks(blocks, parents, work, block_size);
         device.gqsort(blocks, total_block_count, in, out, news);
+
         cuCtxSynchronize();
         work.clear();
         for (int i = 0; i < seq_num; ++i) {
             for (int j = 0; j < 2; ++j) {
                 WorkUnit &workUnit = news[2 * i + j];
                 if (arraySize(workUnit.seq) < block_size) { //diff algo
-                    done.push_back(workUnit);
+                    if(arraySize(workUnit.seq) > 1) {
+                        done.push_back(workUnit);
+                    }
                 } else {
                     work.push_back(workUnit);
                 }
@@ -129,7 +132,9 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     }
 
     //TODO improve
-    device.lqsort(doneArrays, done.size(), in, out);
+    if (done.size() > 0) {
+        device.lqsort(doneArrays, done.size(), in, out);
+    }
 
     cuMemFreeHost(doneArrays);
     cuMemFreeHost(blocks);
