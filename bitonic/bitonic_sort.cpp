@@ -11,7 +11,14 @@ static int THREADS_IN_BLOCK = 1024;
 
 using namespace std;
 
-double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, int x_dim, int y_dim) {
+void bitonic_sort(int *to_sort, int size) {
+    cuInit(0);
+    CUdevice cuDevice;
+    manageResult(cuDeviceGet(&cuDevice, 0));
+    CUcontext cuContext;
+    manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
+    CUmodule cuModule = (CUmodule) 0;
+    manageResult(cuModuleLoad(&cuModule, "bitonic/bitonic_sort.ptx"));
 
     CUfunction bitonic_merge2;
     manageResult(cuModuleGetFunction(&bitonic_merge2, cuModule, "bitonic_merge2"));
@@ -22,38 +29,8 @@ double run1(CUmodule cuModule, int power_n, CUdeviceptr deviceToSort, int size, 
     CUfunction bitonic_triangle_merge;
     manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"));
 
-    std::clock_t start = std::clock();
-
-    void *args[1] = {&deviceToSort};
-    safeLaunch1Dim(bitonic_merge2, x_dim, y_dim, THREADS_IN_BLOCK, args);
-//    cuCtxSynchronize();
-
-    for (int d_half_traingle_p = 11; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
-        void *args1[3] = {&deviceToSort, &d_half_traingle_p, &size};
-
-        safeLaunch1Dim(bitonic_triangle_merge, x_dim, y_dim, THREADS_IN_BLOCK, args1);
-//        cuCtxSynchronize();
-        for (int d_p = d_half_traingle_p - 1; d_p >= 0; d_p--) {
-            void *args2[3] = {&deviceToSort, &d_p, &size};
-            safeLaunch1Dim(bitonic_merge, x_dim, y_dim, THREADS_IN_BLOCK,args2);
-//            cuCtxSynchronize();
-        }
-    }
-    double delta = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
-//    std::cout << "Time for " << "b opt wchuj" << ": " << delta << " ms"
-//              << std::endl;
-    return delta;
-}
 
 
-void bitonic_sort(int *to_sort, int size) {
-    cuInit(0);
-    CUdevice cuDevice;
-    manageResult(cuDeviceGet(&cuDevice, 0));
-    CUcontext cuContext;
-    manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
-    CUmodule cuModule = (CUmodule) 0;
-    manageResult(cuModuleLoad(&cuModule, "bitonic/bitonic_sort.ptx"));
 
     int n;
     int power_n;
@@ -70,7 +47,17 @@ void bitonic_sort(int *to_sort, int size) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
-    double result = run1(cuModule, power_n, deviceToSort, size, x_dim, y_dim);
+    void *args[1] = {&deviceToSort};
+    safeLaunch1Dim(bitonic_merge2, x_dim, y_dim, THREADS_IN_BLOCK, args);
+    for (int d_half_traingle_p = 11; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
+        void *args1[3] = {&deviceToSort, &d_half_traingle_p, &size};
+
+        safeLaunch1Dim(bitonic_triangle_merge, x_dim, y_dim, THREADS_IN_BLOCK, args1);
+        for (int d_p = d_half_traingle_p - 1; d_p >= 0; d_p--) {
+            void *args2[3] = {&deviceToSort, &d_p, &size};
+            safeLaunch1Dim(bitonic_merge, x_dim, y_dim, THREADS_IN_BLOCK,args2);
+        }
+    }
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
