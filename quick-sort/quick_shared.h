@@ -6,8 +6,6 @@
 #ifndef SORTS_QUICK_SHARED_H
 #define SORTS_QUICK_SHARED_H
 
-//#include "../utils/cuda_device.h"
-
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV __device__
 #define INLINE __device__ __forceinline__
@@ -21,7 +19,6 @@ struct DevArray {
     int start;
     //exclusive
     int end;
-    //TODO check
 
     CUDA_HOSTDEV DevArray(int start, int end) : start(start), end(end) {};
     CUDA_HOSTDEV DevArray() {};

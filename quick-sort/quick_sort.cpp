@@ -10,18 +10,8 @@
 #include <ctime>
 
 int pivot(CUdeviceptr to_sort, int size, quick::Device &device) {
-    //TODO
     return device.pivot(to_sort, size);
 }
-
-int sum_seq_size(std::vector<WorkUnit> work, int max_seq) {
-    int result = 0;
-    for (WorkUnit unit : work) {
-        result += (unit.seq.end - unit.seq.start) / max_seq;
-    }
-    return result;
-}
-
 
 inline Block block(int seq_index, SharedVars *parents, WorkUnit &unit, int &start, int end) {
     return {
@@ -45,7 +35,6 @@ void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &wo
     int total_block_index = 0;
     int seq_index = -1;
 
-    //lamda or inline?
     auto block = [&seq_index, parents](WorkUnit &unit, int &start, int end) -> Block {
         return {
             {
@@ -157,8 +146,6 @@ double quick_sort(int *to_sort, int size) {
     manageResult(cuDeviceGet(&cuDevice, 0));
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
 
-
-//    PRINT1("tutej\n");
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
     cuMemcpyHtoD(in, to_sort, size * sizeof(int));

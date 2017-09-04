@@ -41,7 +41,6 @@ template<int ThreadsPow>
 __device__ __forceinline__
 void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     const int Threads = (1 << ThreadsPow);
-    //cached in to shared ?
     __shared__ int lt[Threads + 1],
         gt[Threads + 1],
         pivot,
@@ -56,8 +55,6 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     SharedVars *parent;
 
     if (threadIdx.x == Threads - 1) {
-        //broadcast?
-        //sync needed?
         Block block = blocks[one_dimension_blockId()];
         parent = block.sharedVars;
         start = block.workUnit.seq.start;
@@ -210,7 +207,6 @@ void lqsort_dev(DevArray *seqs, int *in_h, int *out_h) {
         altOrPush<ThreadsPow + 1>(short_seq, workStack, workStcIndex, out, shared);
         __syncthreads();
 
-        //todo imporve it
         i = start + threadIdx.x;
         for (; i < end; i += Threads) {
             in[i] = out[i];

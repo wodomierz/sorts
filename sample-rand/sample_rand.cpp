@@ -19,17 +19,8 @@ using namespace std;
 inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device, CUstream cUstream) {
     sample_rand::PrefsumContext prefsumMemory(memory.prefsumSize(), memory.prefsumsMem);
     device.localPrefSums(memory, prefsumMemory, cUstream);
-
-//    cuCtxSynchronize();
-//    print_Devtab(prefsumMemory.batchSums, memory.baseData.number_of_blocks + 1, 20,0,"Bef");
-//    print_Devtab(memory.blockPrefsums, memory.prefsumSize(), 20,0,"Bef");
     device.prefsumOfBatchSums(prefsumMemory, cUstream);
-//    print_Devtab(prefsumMemory.batchSums, memory.baseData.number_of_blocks + 1,20, 0,"Aft");
-
-//    cuCtxSynchronize();
-
     device.globalPrefSums(memory, prefsumMemory, cUstream);
-//    prefsumMemory.clean();
 }
 
 
@@ -37,14 +28,9 @@ inline void prefsum(sample_rand::Context &memory, sample_rand::Device &device, C
 
 void sample_sort_big_work_unit(sample_rand::Device &device, sample_rand::Context &memory, CUstream stream) {
     device.sample_dev(memory, stream);
-//    cuCtxSynchronize();
     device.counters(memory, stream);
-//    cuCtxSynchronize();
     prefsum(memory, device, stream);
-//    cuCtxSynchronize();
     device.scatter(memory, stream);
-//    cuCtxSynchronize();
-//    memory.moveResult(); ??
 }
 
 
@@ -59,7 +45,6 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
 
     CUstream streams[128];
     for (int i=0;i<128; ++i) {
-//        streams[i] = 0;
         cuStreamCreate(streams + i, 0);
     }
 
@@ -70,25 +55,9 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
             std::clock_t start = std::clock();
             sample_sort_big_work_unit(device, bigSize[i], streams[i%128]);
             long delta = (std::clock() - start) / 1000;
-            PRINT1("delta %ld\n", delta);
-
-//            cuCtxSynchronize();
         }
-        //sync?
         cuCtxSynchronize();
-
-//        for (sample_rand::Context& workUnit: bigSize) {
-//            std::clock_t start = std::clock();
-//            sample_sort_big_work_unit(device, workUnit);
-//            long delta = (std::clock() - start) / 1000;
-//            PRINT1("delta %ld\n", delta);
-//            totalTim += delta;
-//        }
-        //move result here or in kernel??
         globalContext.moveResult(); //???
-//        cuCtxSynchronize(); //to obtain offsets
-
-        //async???
         int prefsum_offset = 0;
         int prefMemOff = 0;
         for (sample_rand::Context& workUnit: bigSize) {
@@ -112,7 +81,6 @@ void sampleRand(sample_rand::Device &device, quick::Device &quickDevice, sample_
         news.clear();
     }
     cuCtxSynchronize();
-    //async?
     DevArray* seqs = cuMemAllocH<DevArray>(smallSize.size());
     for (int i=0; i < smallSize.size(); ++i) {
         seqs[i] = smallSize[i];
@@ -136,9 +104,7 @@ void sampleRand(int *to_sort, int size) {
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     cuMemcpyHtoD(memory.deviceToSort, to_sort, size * sizeof(int));
 
-    PRINT1("beforedsa %d\n", size);
     sampleRand(device, quick_device, memory);
-    PRINT("after\n");
 
     cuMemcpyDtoH((void *) to_sort, memory.deviceToSort, size * sizeof(int));
 

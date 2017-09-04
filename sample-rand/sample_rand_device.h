@@ -24,7 +24,7 @@ namespace sample_rand {
         CUfunction countersCU;
         CUfunction scatterCU;
 
-        CUfunction chujowy_sortDev;
+        CUfunction dummy_sortDev;
 
 
         CUfunction sampleDev;

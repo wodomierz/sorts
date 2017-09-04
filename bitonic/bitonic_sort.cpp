@@ -7,8 +7,8 @@
 #include <ctime>
 #include "../utils/utils.h"
 
-//static int ThreadsPow = 10;
-static int THREADS_IN_BLOCK = 1024;
+static int ThreadsPow = 10;
+static int THREADS_IN_BLOCK = (1 << ThreadsPow);
 static int BlockSize = THREADS_IN_BLOCK *2;
 using namespace std;
 
@@ -36,13 +36,9 @@ void bitonic_sort(int *to_sort, int size) {
 
 
 
-//    int numberOfBlocks = ceil_div(size, BlockSize);
-//    int trimmed_size = numberOfBlocks * BlockSize;
-//    int delta = trimmed_size - size;
     int n;
     int power_n;
     for (n = 1, power_n = 0; n < size; n <<= 1, power_n++);
-    int half_size = n / 2;
     int numberOfBlocks = ceil_div(size, BlockSize);
     int x_dim = numberOfBlocks > MAX_GRID_DIM ? MAX_GRID_DIM : numberOfBlocks;
     int y_dim = (numberOfBlocks + x_dim - 1) / x_dim;
@@ -50,10 +46,7 @@ void bitonic_sort(int *to_sort, int size) {
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
     cuMemAlloc(&deviceToSort, size * sizeof(int));
-//    CUdeviceptr shiftedDevToSort = addIntOffset(deviceToSort, delta);
-
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
-//    cuMemsetD32(deviceToSort, 0, delta);
 
 
 
@@ -71,7 +64,6 @@ void bitonic_sort(int *to_sort, int size) {
     }
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
-//    cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);

@@ -42,7 +42,7 @@ void min_max(int *tab, int for_min, int for_max) {
 
 
 __device__ __forceinline__
-void chujowy_sort_dev(int *to_sort, int size) {
+void dummy_sort_dev(int *to_sort, int size) {
     __syncthreads();
     if (threadIdx.x == 0) {
         for (int i = 1; i < size; ++i) {

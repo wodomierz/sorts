@@ -37,8 +37,6 @@ void offset_count(int *localPrefsums, int *sample_offsets, int number_of_counter
 template<int Threads, int Elements>
 __device__ __forceinline__
 void prefsum1_dev(int *localPrefsums, int *maxPrefSums, int number_of_counter_blocks, int *sample_offsets, int size) {
-    //mozna sumowac od razu w scatter
-
     int blockId = one_dimension_blockId();
     int thid = threadIdx.x + blockId * Threads * Elements;
 
@@ -103,7 +101,6 @@ void counters_dev(int *to_sort, int *sample, int *prefsums, int number_of_blocks
 
 
     if (threadId < SampleSize) {
-        //bug?
         for (int i = 1; i < ArraysNum; ++i) {
             histogram[0][threadId] += histogram[i][threadId];
         }
@@ -166,7 +163,7 @@ void sample_dev(int *tab, int size, int seed, int plus, int *bst) {
 
     __syncthreads();
 
-    chujowy_sort_dev(to_sort, BlockSize);
+    dummy_sort_dev(to_sort, BlockSize);
     __syncthreads();
     if (threadIdx.x == 0) {
         int iteratr = 0;

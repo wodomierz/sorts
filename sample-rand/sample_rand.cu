@@ -10,8 +10,8 @@
 extern "C" {
 
 __global__
-void chujowy_sort(int *to_sort, int size) {
-    chujowy_sort_dev(to_sort, size);
+void dummy_sort(int *to_sort, int size) {
+    dummy_sort_dev(to_sort, size);
 }
 
 

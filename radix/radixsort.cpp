@@ -15,8 +15,6 @@ double radixsort(int *to_sort, int size) {
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
 
-//    int MAX_INT = numeric_limits<int>::max();
-
     CUcontext cuContext;
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
     CUmodule cuModule = (CUmodule) 0;
@@ -42,20 +40,15 @@ double radixsort(int *to_sort, int size) {
     manageResult(cuModuleGetFunction(&one_block_prefsum, cuModule, "one_block_prefsum"));
 
 
-//    int numberOfBlocks = (size+2048-1)/2048;
     int numberOfBlocks = (size + BlockSize - 1) / BlockSize;
 
-    // int n = 2048*numberOfBlocks;
-//    int *prefixSums;
     CUdeviceptr localSums;
     CUdeviceptr tab[2];
-//    CUdeviceptr prefixSums = cuAllocD<int>(numberOfBlocks + 1);
 
     int *biggerTab = to_sort;
 
     int n = size;
     cuMemHostRegister((void *) biggerTab, sizeof(int) * n, 0);
-//    cuMemAllocHost((void **) &prefixSums, (numberOfBlocks + 1) * sizeof(int));
 
     cuMemAlloc(&tab[0], n * sizeof(int));
     cuMemAlloc(&tab[1], n * sizeof(int));
@@ -64,7 +57,6 @@ double radixsort(int *to_sort, int size) {
 
     cuMemcpyHtoD(tab[0], biggerTab, n * sizeof(int));
 
-//    prefixSums[0] = 0;
     std::clock_t start = std::clock();
 
     int number_of_zeros = 0;
@@ -80,15 +72,12 @@ double radixsort(int *to_sort, int size) {
         prefsum_arrays.push_back({cuAllocD<int>(prefsum_arrays_size + 1), prefsum_arrays_size});
         cuMemsetD32(prefsum_arrays.back().array, 0, 1);
     }
-//    PRINT1("here\n");
     void *args[5] = {NULL, &localSums, &(*prefsum_arrays.begin()), &n, &mask};
 
     void *argssums[] = {&(*prefsum_arrays.begin()), &numberOfBlocks};
 
     void *args1[7] = {NULL, NULL, &localSums, &(*prefsum_arrays.begin()), &mask, &n, &numberOfBlocks};
 
-
-//31 todo
     for (mask = 0; mask < 31; mask++) {
         args[0] = &tab[mask % 2];
         cuLaunchKernel(prefixSum, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
@@ -122,7 +111,6 @@ double radixsort(int *to_sort, int size) {
     for (auto ptr: prefsum_arrays) {
         cuMemFree(ptr.array);
     }
-//    cuMemFree(prefixSums);
     cuMemFree(number_of_zeros_dev);
     cuMemFree(tab[0]);
     cuMemFree(tab[1]);

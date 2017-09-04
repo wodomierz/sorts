@@ -1,4 +1,3 @@
-#include <cstdio>
 #include "../utils/cuda_device.h"
 #include "../prefsum/prefsum.cuh"
 #include "../utils/kernel_commons.cuh"
@@ -34,7 +33,6 @@ void sort_dev(int *source, int *destination, int *prefixSum, int *prefixSums, in
     const int BlockSize = Threads * Elements;
     int blockId = one_dimension_blockId();
     int offset = blockId * BlockSize;
-//    prefixSums[blockId] = 2;
     prefixSum += offset;
     source += offset;
     n -= offset;
@@ -47,7 +45,6 @@ void sort_dev(int *source, int *destination, int *prefixSum, int *prefixSums, in
         }
         destination[place] = source[thid];
     }
-//    prefixSums[blockId] = 2;
 
 }
 
@@ -126,7 +123,6 @@ int cdiv(int divident, int power_of_2) {
 __global__
 void global_sums(int* offsetPrefSums, int size) {
     global_prefsums(offsetPrefSums, size);
-//    *number_of_zeros = n - offsetPrefSums[size];
 }
 
 

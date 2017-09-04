@@ -22,7 +22,7 @@ namespace sample_rand {
         manageResult(cuModuleGetFunction(&countersCU, cuModule, "counters"));
         manageResult(cuModuleGetFunction(&scatterCU, cuModule, "scatter"));
 
-        manageResult(cuModuleGetFunction(&chujowy_sortDev, cuModule, "chujowy_sort"));
+        manageResult(cuModuleGetFunction(&dummy_sortDev, cuModule, "dummy_sort"));
         manageResult(cuModuleGetFunction(&sampleDev, cuModule, "sample"));
 
     }
@@ -45,7 +45,7 @@ namespace sample_rand {
 
     void Device::chujowy(sample_rand::Context &memory) {
         void *args[2] = {&memory.deviceToSort, &memory.baseData.size};
-        safeLaunch1Dim(chujowy_sortDev, 1, 1, 1, args);
+        safeLaunch1Dim(dummy_sortDev, 1, 1, 1, args);
         cuCtxSynchronize();
     }
 

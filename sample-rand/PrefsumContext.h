@@ -13,9 +13,6 @@ namespace sample_rand {
     public:
         BaseData baseData;
         CUdeviceptr batchSums;
-//        int *batchSums;
-
-//        void clean();
 
         PrefsumContext(int, CUdeviceptr batchSums);
     };
