@@ -150,20 +150,26 @@ void quick_sort_device(CUdeviceptr to_sort, int size) {
     cuMemFree(buffer);
 }
 
-void quick_sort(int *to_sort, int size) {
+double quick_sort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     CUcontext cuContext;
     manageResult(cuDeviceGet(&cuDevice, 0));
     manageResult(cuCtxCreate(&cuContext, 0, cuDevice));
 
+
 //    PRINT1("tutej\n");
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
     cuMemcpyHtoD(in, to_sort, size * sizeof(int));
+    std::clock_t start = std::clock();
+
     quick_sort_device(in, size);
+    std::clock_t end = std::clock();
+
     cuMemcpyDtoH(to_sort, in, sizeof(int) * size);
     cuMemFree(in);
 
     cuCtxDestroy(cuContext);
+    return (end -start) / 1000.0;
 }

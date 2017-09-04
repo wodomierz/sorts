@@ -9,7 +9,7 @@ static int THREADS_IN_BLOCK = 1024;
 using namespace std;
 
 
-void odd_even(int *to_sort, int size) {
+double odd_even(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
@@ -44,6 +44,8 @@ void odd_even(int *to_sort, int size) {
     cuMemAlloc(&deviceToSort, size * sizeof(int));
     cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
 
+    cuCtxSynchronize();
+    std::clock_t start = std::clock();
     void *args[1] = {&deviceToSort};
     safeLaunch1Dim(odd_even, x_dim, y_dim, THREADS_IN_BLOCK, args);
     for (int pow__half_batch = 11; pow__half_batch <= power - 1; pow__half_batch++) {
@@ -56,11 +58,15 @@ void odd_even(int *to_sort, int size) {
         }
 
     }
+    cuCtxSynchronize();
+    std::clock_t end = std::clock();
+
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
+    return (end - start);
 }
 

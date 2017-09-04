@@ -60,11 +60,13 @@ void standard_sort(int*tab, int size) {
     std::sort(tab, tab + size);
 }
 
-vector<func_t > sorts = {bitonic_sort, odd_even, radixsort, quick_sort};
-
 typedef void (data_provider)(int*, int);
 
 typedef double (*func_withtime)(int *, int);
+
+//vector<func_withtime > sorts = {bitonic_sort, odd_even};
+vector<func_t > sorts = {bitonic_sort};
+//                         odd_even, radixsort, quick_sort};
 
 double testTime(func_t f, int *c1, int n, string name) {
     std::clock_t start = std::clock();
@@ -107,8 +109,14 @@ void testSort(int *initData, int n, int sort_idx) {
     allres[sort_idx].push_back(cleanTestTime(sort, initData, n, "sort"));
 }
 
+//void testSortTime(int *initData, int n, int sort_idx) {
+//    func_withtime sort = sorts[sort_idx];
+//    cleanTest(sort, initData, n, "sort");
+//    allres[sort_idx].push_back(cleanTest(sort, initData, n, "sort"));
+//}
+
 void testStandardSort(int *initData, int n) {
-    allres[4].push_back(cleanTestTime(standard_sort, initData, n, "sort"));
+    allres[sorts.size()].push_back(cleanTestTime(standard_sort, initData, n, "sort"));
 }
 
 long avg(vector<double> v) {
@@ -121,7 +129,7 @@ long avg(vector<double> v) {
 
 void testAvg(int *initData, int n, data_provider provider, int times) {
 //    int times = 8;
-    int parallel_times = 3;
+    int parallel_times = 2;
 
     allres.clear();
     for (int i=0; i< sorts.size() + 1; ++i) {
@@ -135,18 +143,18 @@ void testAvg(int *initData, int n, data_provider provider, int times) {
                 testSort(initData, n, i);
             }
         }
-        testStandardSort(initData, n);
+//        testStandardSort(initData, n);
     }
     for(int i =0;i < sorts.size(); ++i) {
         avgs[i] = avg(allres[i]);
     }
-    avgs[4] = avg(allres[4]);
+//    avgs[sorts.size()] = avg(allres[sorts.size()]);
 
     cout << "BIT " << avgs[0] << endl;
     cout << "ODD_EVEN "<< avgs[1]<< endl;
-    cout<<"RADIX "<< avgs[2]<<endl;
-    cout<<"QUICK "<< avgs[3]<< endl;
-    cout<<"STD " << avgs[4]<< endl;
+//    cout<<"RADIX "<< avgs[2]<<endl;
+//    cout<<"QUICK "<< avgs[3]<< endl;
+//    cout<<"STD " << avgs[4]<< endl;
 }
 
 
@@ -200,21 +208,23 @@ void allTests(int n) {
     int *tab = (int *) malloc(n * sizeof(int));
 
     loggTitle("rand");
-    testAvg(tab, n, randDP, 1);
+    testAvg(tab, n, randDP, 8);
 
     loggTitle("zero");
-    testAvg(tab, n, zeroDP, 1);
+    testAvg(tab, n, zeroDP, 2);
 
     loggTitle("asc");
-    testAvg(tab, n, ascDP, 1);
+    testAvg(tab, n, ascDP, 2);
 
     loggTitle("desc");
-    testAvg(tab, n, descDP, 1);
+    testAvg(tab, n, descDP, 2);
     free(tab);
 }
 
+
+
 void effTests() {
-    for (int i= 20; i <= 29; ++i) {
+    for (int i= 11; i <= 15; ++i) {
         allTests((1 << i));
     }
     cout << "END" << endl;
@@ -367,7 +377,7 @@ double radix1(int *tab, int size) {
 
 
 void bitonic_sort1(int *tab, int size) {
- odd_even(tab, size);
+ bitonic_sort(tab, size);
 //    sampleRand(tab, size);
 //    quick_sort(tab, size);
 //    odd_even(tab,size);
@@ -389,15 +399,22 @@ void test_correctness() {
 //    testg(bitonic_sort1,16*16*2);
 //    testg(bitonic_sort1, 16*16*4);
 //    testg(bitonic_sort1, 16*16*8);
-//    testg(bitonic_sort1, 1024*1024*8);
-//    testg(bitonic_sort1, 1024*1024*16);
-//    testg(bitonic_sort1, 1024*1024*32);
+    testg(bitonic_sort1, 1024*1024*2);
+    testg(bitonic_sort1, 1024*1024*4);
+    testg(bitonic_sort1, 1024*1024*8);
+    testg(bitonic_sort1, 1024*1024*16);
+    testg(bitonic_sort1, 1024*1024*32);
+    testg(bitonic_sort1, 1024*1024*64);
+    testg(bitonic_sort1, 1024*1024*128);
+    testg(bitonic_sort1, 1024*1024*256);
+//    testg(bitonic_sort1, 1024*1024*216);
+//    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*32);
-    testz(quick_sort, 1<<22);
+//    testz(quick_sort, 1<<22);
     int z = 1000;
     while(z--) {
-        testz(quick_sort, 1<<28);
+//        testz(quick_sort, 1<<28);
     }
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);

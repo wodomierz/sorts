@@ -8,7 +8,6 @@ template<int THREADS_POW>
 __device__ __forceinline__
 void odd_even_device(int *to_sort, int size, int tab[]) {
     const int THREADS = (1 << THREADS_POW);
-    const int LOCAL_BLOCK = (THREADS * 2);
 
     int thid = threadIdx.x;
     tab[thid] = gerOrInf(to_sort, thid, size);
@@ -22,7 +21,7 @@ void odd_even_device(int *to_sort, int size, int tab[]) {
         int wireThid = thid + ((thid >> pow__half_batch) << pow__half_batch);
         int opposite = wireThid + half_batch;
         //is size check needed here?
-        min_max(tab, wireThid, opposite, LOCAL_BLOCK);
+        min_max(tab, wireThid, opposite, size);
         __syncthreads();
         for (int d_power = pow__half_batch - 1; d_power >= 0; d_power--) {
 
@@ -32,7 +31,7 @@ void odd_even_device(int *to_sort, int size, int tab[]) {
 
             int wire_id = thid + (((thid >> d_power) + ((thid / period) << 1) + 1) << d_power);
             int opposite = wire_id + d;
-            min_max(tab, wire_id, opposite, LOCAL_BLOCK);
+            min_max(tab, wire_id, opposite, size);
 
             __syncthreads();
         }

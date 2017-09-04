@@ -29,6 +29,17 @@ void min_max(int *tab, int for_min, int for_max, int size) {
     }
 };
 
+__device__ __forceinline__
+void min_max(int *tab, int for_min, int for_max) {
+    int min = tab[for_min];
+    int max = tab[for_max];
+    if (max < min) {
+        atomicExch(tab + for_max, min);
+        atomicExch(tab + for_min, max);
+    }
+};
+
+
 
 __device__ __forceinline__
 void chujowy_sort_dev(int *to_sort, int size) {

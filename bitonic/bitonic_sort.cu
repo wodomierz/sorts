@@ -2,14 +2,21 @@
 #include "../utils/kernel_commons.cuh"
 #include "bitonic_sort.cuh"
 
+
+#define BIT_THREADS_POW 10
+#define BIT_THREADS (1 << BIT_THREADS_POW)
+#define BIT_BLOCK (2* BIT_THREADS)
+
 extern "C" {
 
+
+
 __global__
-void bitonic_merge2(int *to_sort) {
-    __shared__ int tab[2048];
+void bitonic_merge2(int *to_sort, int size) {
+    __shared__ int tab[BIT_BLOCK];
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int offset = blockId * blockDim.x * 2;
-    bitonic_merge_device<10>(to_sort + offset, 2048, tab);
+    bitonic_merge_device<BIT_THREADS_POW>(to_sort + offset,size - offset, tab);
 }
 
 __global__
@@ -35,6 +42,13 @@ void bitonic_triangle_merge(int *to_sort, int half_triangle_power, int size) {
     int local_thid = wireThid & (d_triangle - 1);
     int opposite = wireThid - local_thid + d_triangle - 1 - local_thid;
     min_max(to_sort, wireThid, opposite, size);
+}
+
+__global__
+void phase2_global(int *to_sort, int size) {
+    int blockId = one_dimension_blockId();
+    int offset = blockId * blockDim.x * 2;
+    bitonic_merge_device_phase2_global<BIT_THREADS_POW>(to_sort + offset, size -offset);
 }
 
 }

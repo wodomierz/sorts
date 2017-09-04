@@ -10,7 +10,7 @@ static int BlockSize = ThreadsInBlock*4;
 
 //only bigger than 2048 !
 
-void radixsort(int *to_sort, int size) {
+double radixsort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
@@ -65,6 +65,7 @@ void radixsort(int *to_sort, int size) {
     cuMemcpyHtoD(tab[0], biggerTab, n * sizeof(int));
 
 //    prefixSums[0] = 0;
+    std::clock_t start = std::clock();
 
     int number_of_zeros = 0;
     int mask = 0;
@@ -114,6 +115,8 @@ void radixsort(int *to_sort, int size) {
         cuLaunchKernel(sort, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args1, 0);
     }
 
+    std::clock_t end = std::clock();
+
     cuMemcpyDtoH((void *) to_sort, tab[1], size * sizeof(int));
 
     for (auto ptr: prefsum_arrays) {
@@ -125,4 +128,5 @@ void radixsort(int *to_sort, int size) {
     cuMemFree(tab[1]);
     cuMemFree(localSums);
     cuCtxDestroy(cuContext);
+    return (end - start) / 1000.0;
 }

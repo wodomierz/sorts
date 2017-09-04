@@ -7,8 +7,9 @@
 #include <ctime>
 #include "../utils/utils.h"
 
+//static int ThreadsPow = 10;
 static int THREADS_IN_BLOCK = 1024;
-
+static int BlockSize = THREADS_IN_BLOCK *2;
 using namespace std;
 
 void bitonic_sort(int *to_sort, int size) {
@@ -23,6 +24,10 @@ void bitonic_sort(int *to_sort, int size) {
     CUfunction bitonic_merge2;
     manageResult(cuModuleGetFunction(&bitonic_merge2, cuModule, "bitonic_merge2"));
 
+    CUfunction phase2_global;
+    manageResult(cuModuleGetFunction(&phase2_global, cuModule, "phase2_global"));
+
+
     CUfunction bitonic_merge;
     manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"));
 
@@ -31,38 +36,46 @@ void bitonic_sort(int *to_sort, int size) {
 
 
 
-
+//    int numberOfBlocks = ceil_div(size, BlockSize);
+//    int trimmed_size = numberOfBlocks * BlockSize;
+//    int delta = trimmed_size - size;
     int n;
     int power_n;
-    //fit n to power of 2
     for (n = 1, power_n = 0; n < size; n <<= 1, power_n++);
     int half_size = n / 2;
-    int numberOfBlocks = (half_size + THREADS_IN_BLOCK - 1) / THREADS_IN_BLOCK;
-    int max_grid_dim_x = MAX_GRID_DIM;
-    int x_dim = numberOfBlocks > max_grid_dim_x ? max_grid_dim_x : numberOfBlocks;
+    int numberOfBlocks = ceil_div(size, BlockSize);
+    int x_dim = numberOfBlocks > MAX_GRID_DIM ? MAX_GRID_DIM : numberOfBlocks;
     int y_dim = (numberOfBlocks + x_dim - 1) / x_dim;
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
     cuMemAlloc(&deviceToSort, size * sizeof(int));
-    cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
+//    CUdeviceptr shiftedDevToSort = addIntOffset(deviceToSort, delta);
 
-    void *args[1] = {&deviceToSort};
+    cuMemcpyHtoD(deviceToSort, to_sort, size * sizeof(int));
+//    cuMemsetD32(deviceToSort, 0, delta);
+
+
+
+    void *args[] = {&deviceToSort, &size};
     safeLaunch1Dim(bitonic_merge2, x_dim, y_dim, THREADS_IN_BLOCK, args);
     for (int d_half_traingle_p = 11; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
-        void *args1[3] = {&deviceToSort, &d_half_traingle_p, &size};
+        void *args1[] = {&deviceToSort, &d_half_traingle_p, &size};
 
         safeLaunch1Dim(bitonic_triangle_merge, x_dim, y_dim, THREADS_IN_BLOCK, args1);
-        for (int d_p = d_half_traingle_p - 1; d_p >= 0; d_p--) {
-            void *args2[3] = {&deviceToSort, &d_p, &size};
+        for (int d_p = d_half_traingle_p - 1; d_p >= 11; d_p--) {
+            void *args2[] = {&deviceToSort, &d_p, &size};
             safeLaunch1Dim(bitonic_merge, x_dim, y_dim, THREADS_IN_BLOCK,args2);
         }
+        safeLaunch1Dim(phase2_global, x_dim, y_dim, THREADS_IN_BLOCK,args);
     }
 
     cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
+//    cuMemcpyDtoH((void *) to_sort, deviceToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
+//    return (end - start);
 }
 
