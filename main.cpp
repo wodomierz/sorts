@@ -350,7 +350,6 @@ void testg(func_t sort, int n) {
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
             }
-//            cout <<"dupeczka" << endl;
 //            cout << endl << endl;
 //            for (int i = 2048 ; i < 1064; ++i) {
 //                cout << c[i] << endl;
