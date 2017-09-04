@@ -376,9 +376,9 @@ double radix1(int *tab, int size) {
 
 
 void bitonic_sort1(int *tab, int size) {
- bitonic_sort(tab, size);
+// bitonic_sort(tab, size);
 //    sampleRand(tab, size);
-//    quick_sort(tab, size);
+    quick_sort(tab, size);
 //    odd_even(tab,size);
 }
 
