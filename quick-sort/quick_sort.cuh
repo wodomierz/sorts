@@ -97,16 +97,23 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
         }
     }
     __syncthreads();
-    if (threadIdx.x == Threads - 1 && atomicSub(&(parent->block_count), 1) == 1) {
-        for (i = parent->seq.start; i < parent->seq.end; i++) {
+
+    if (threadIdx.x == Threads - 1) {
+        start = atomicSub(&(parent->block_count), 1);
+        if (start == 1) {
+            l_pivot = median(out, parent->old_seq.start, parent->seq.start);
+            g_pivot = median(out, parent->seq.end, parent->old_seq.end);
+            news[2 * parent->seq_index] = WorkUnit(DevArray(parent->old_seq.start, parent->seq.start), l_pivot);
+            news[2 * parent->seq_index + 1] = WorkUnit(DevArray(parent->seq.end, parent->old_seq.end), g_pivot);
+        }
+    }
+    __syncthreads();
+    if (start ==1 ) {
+        for (i = parent->seq.start + threadIdx.x; i < parent->seq.end; i+= Threads) {
             out[i] = pivot;
         }
-        l_pivot = median(out, parent->old_seq.start, parent->seq.start);
-        g_pivot = median(out, parent->seq.end, parent->old_seq.end);
-
-        news[2 * parent->seq_index] = WorkUnit(DevArray(parent->old_seq.start, parent->seq.start), l_pivot);
-        news[2 * parent->seq_index + 1] = WorkUnit(DevArray(parent->seq.end, parent->old_seq.end), g_pivot);
     }
+
 }
 
 template<int OtherSortPow>

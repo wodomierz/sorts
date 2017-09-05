@@ -65,7 +65,7 @@ typedef void (data_provider)(int*, int);
 typedef double (*func_withtime)(int *, int);
 
 //vector<func_withtime > sorts = {bitonic_sort, odd_even};
-vector<func_t > sorts = {bitonic_sort};
+vector<func_t > sorts = {bitonic_sort, odd_even};
 //                         odd_even, radixsort, quick_sort};
 
 double testTime(func_t f, int *c1, int n, string name) {
@@ -224,7 +224,7 @@ void allTests(int n) {
 
 
 void effTests() {
-    for (int i= 11; i <= 15; ++i) {
+    for (int i= 19; i <= 29; ++i) {
         allTests((1 << i));
     }
     cout << "END" << endl;
@@ -345,7 +345,7 @@ void testg(func_t sort, int n) {
 //            std::bitset<32> second(c[j+1]);
 //            std::cout << second << endl;
             printf("test %d %d %d %d \n", n, c[j], c[j + 1], j);
-            for (int i = -2; (i + j) < n && i < 10; ++i) {
+            for (int i = -2; (i + j) < n && i < 150; ++i) {
                 cout << (i + j) << " " << c[i + j] << endl;
 ////                std::bitset<32> b(c[i]);
 ////                std::cout << b << endl;
@@ -378,8 +378,8 @@ double radix1(int *tab, int size) {
 void bitonic_sort1(int *tab, int size) {
 // bitonic_sort(tab, size);
 //    sampleRand(tab, size);
-    quick_sort(tab, size);
-//    odd_even(tab,size);
+//    quick_sort(tab, size);
+    odd_even(tab,size);
 }
 
 void test_correctness() {
@@ -398,9 +398,9 @@ void test_correctness() {
 //    testg(bitonic_sort1,16*16*2);
 //    testg(bitonic_sort1, 16*16*4);
 //    testg(bitonic_sort1, 16*16*8);
-    testg(bitonic_sort1, 1024*1024*2);
-    testg(bitonic_sort1, 1024*1024*4);
-    testg(bitonic_sort1, 1024*1024*8);
+//    testg(bitonic_sort1, 16*7);
+//    testg(bitonic_sort1, 7*7*2);
+    testg(bitonic_sort1, 1023*1023*345);
     testg(bitonic_sort1, 1024*1024*16);
     testg(bitonic_sort1, 1024*1024*32);
     testg(bitonic_sort1, 1024*1024*64);
@@ -443,8 +443,8 @@ int main() {
 
 
 //
-//    effTests();
-    test_correctness();
+    effTests();
+//    test_correctness();
     return 0;
 }
 

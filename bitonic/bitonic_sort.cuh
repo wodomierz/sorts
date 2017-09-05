@@ -30,7 +30,7 @@ void bitonic_merge_device_phase2(int tab[], int d_power) {
 
 template<int ThreadsPow>
 __device__ __forceinline__
-void bitonic_merge_device_phase2_global(int* to_sort, int size) {
+void bitonic_merge_device_phase2_global(int* to_sort) {
     const int Threads = (1 << ThreadsPow);
     __shared__ int tab[Threads*2];
     int threadId = threadIdx.x;
@@ -39,7 +39,7 @@ void bitonic_merge_device_phase2_global(int* to_sort, int size) {
     tab[threadId + Threads] = to_sort[threadId + Threads];
 
     __syncthreads();
-    bitonic_merge_device_phase2(size, tab, ThreadsPow);
+    bitonic_merge_device_phase2( tab, ThreadsPow);
 
     to_sort[threadId] = tab[threadId];
     to_sort[threadId + Threads] = tab[threadId + Threads];
@@ -83,7 +83,7 @@ void bitonic_merge_device(int *to_sort, int tab[]) {
     int threadId = threadIdx.x;
 
     tab[threadId] = to_sort[threadId];
-    tab[threadId + Threads] = to_sort[threadId];
+    tab[threadId + Threads] = to_sort[threadId + Threads];
 
     __syncthreads();
 

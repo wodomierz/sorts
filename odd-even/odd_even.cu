@@ -8,7 +8,7 @@ void odd_even(int *to_sort) {
     __shared__ int tab[2048];
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int offset = blockId * blockDim.x * 2;
-    odd_even_device<10>(to_sort + offset, 2048, tab);
+    odd_even_device<10>(to_sort + offset, tab);
 }
 
 __global__

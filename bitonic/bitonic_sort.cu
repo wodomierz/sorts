@@ -12,11 +12,11 @@ extern "C" {
 
 
 __global__
-void bitonic_merge2(int *to_sort, int size) {
+void bitonic_merge2(int *to_sort) {
     __shared__ int tab[BIT_BLOCK];
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     int offset = blockId * blockDim.x * 2;
-    bitonic_merge_device<BIT_THREADS_POW>(to_sort + offset,size - offset, tab);
+    bitonic_merge_device<BIT_THREADS_POW>(to_sort + offset, tab);
 }
 
 __global__
@@ -45,10 +45,10 @@ void bitonic_triangle_merge(int *to_sort, int half_triangle_power, int size) {
 }
 
 __global__
-void phase2_global(int *to_sort, int size) {
+void phase2_global(int *to_sort) {
     int blockId = one_dimension_blockId();
     int offset = blockId * blockDim.x * 2;
-    bitonic_merge_device_phase2_global<BIT_THREADS_POW>(to_sort + offset, size -offset);
+    bitonic_merge_device_phase2_global<BIT_THREADS_POW>(to_sort + offset);
 }
 
 }
