@@ -10,6 +10,6 @@
 
 #define QUICKTHREADS_POW 10
 
-double quick_sort(int *to_sort, int size);
+void quick_sort(int *to_sort, int size);
 
 #endif //SORTS_QUICK_SORT_H

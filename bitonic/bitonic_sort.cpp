@@ -56,6 +56,11 @@ void bitonic_sort(int *to_sort, int size) {
     cuMemcpyHtoD(shiftedToSort, to_sort, size * sizeof(int));
     cuMemsetD32(deviceToSort, 0, delta);
 
+
+
+//    cuCtxSynchronize();
+//    std::clock_t start = std::clock();
+
     void *args[] = {&deviceToSort};
     safeLaunch1Dim(bitonic_merge2, baseData1.x_dim, baseData1.y_dim, THREADS_IN_BLOCK, args);
     for (int d_half_traingle_p = ThreadsPow + 1; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
@@ -69,10 +74,14 @@ void bitonic_sort(int *to_sort, int size) {
         safeLaunch1Dim(phase2_global, baseData1.x_dim, baseData1.y_dim, THREADS_IN_BLOCK,args);
     }
 
+//    cuCtxSynchronize();
+//    std::clock_t end = std::clock();
+
     cuMemcpyDtoH((void *) to_sort, shiftedToSort, size * sizeof(int));
 
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
+//    return (end - start) / 1000.0;
 }
 

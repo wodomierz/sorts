@@ -99,8 +99,10 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
     __syncthreads();
 
     if (threadIdx.x == Threads - 1) {
-        start = atomicSub(&(parent->block_count), 1);
-        if (start == 1) {
+        lbeg = atomicSub(&(parent->block_count), 1);
+        if (lbeg == 1) {
+            start = parent->seq.start;
+            end = parent->seq.end;
             l_pivot = median(out, parent->old_seq.start, parent->seq.start);
             g_pivot = median(out, parent->seq.end, parent->old_seq.end);
             news[2 * parent->seq_index] = WorkUnit(DevArray(parent->old_seq.start, parent->seq.start), l_pivot);
@@ -108,8 +110,8 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
         }
     }
     __syncthreads();
-    if (start ==1 ) {
-        for (i = parent->seq.start + threadIdx.x; i < parent->seq.end; i+= Threads) {
+    if (lbeg ==1 ) {
+        for (i = start + threadIdx.x; i < end; i+= Threads) {
             out[i] = pivot;
         }
     }

@@ -139,7 +139,7 @@ void quick_sort_device(CUdeviceptr to_sort, int size) {
     cuMemFree(buffer);
 }
 
-double quick_sort(int *to_sort, int size) {
+void quick_sort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     CUcontext cuContext;
@@ -149,14 +149,14 @@ double quick_sort(int *to_sort, int size) {
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
     cuMemcpyHtoD(in, to_sort, size * sizeof(int));
-    std::clock_t start = std::clock();
+//    std::clock_t start = std::clock();
 
     quick_sort_device(in, size);
-    std::clock_t end = std::clock();
+//    std::clock_t end = std::clock();
 
     cuMemcpyDtoH(to_sort, in, sizeof(int) * size);
     cuMemFree(in);
 
     cuCtxDestroy(cuContext);
-    return (end -start) / 1000.0;
+//    return (end -start) / 1000.0;
 }

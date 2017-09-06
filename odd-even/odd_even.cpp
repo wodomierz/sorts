@@ -61,6 +61,7 @@ void odd_even(int *to_sort, int size) {
     cuMemsetD32(deviceToSort, 0, delta);
 //    cuCtxSynchronize();
 //    std::clock_t start = std::clock();
+
     void *args[] = {&deviceToSort};
     safeLaunch1Dim(odd_even, baseData1.x_dim, baseData1.y_dim, THREADS_IN_BLOCK, args);
     for (int pow__half_batch = 11; pow__half_batch <= power_n - 1; pow__half_batch++) {
@@ -82,6 +83,6 @@ void odd_even(int *to_sort, int size) {
     cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
     cuCtxDestroy(cuContext);
-//    return (end - start);
+//    return (end - start)/1000.0;
 }
 
