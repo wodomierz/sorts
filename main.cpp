@@ -405,15 +405,21 @@ void test_correctness() {
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);
 //    testg(bitonic_sort1, 1024*1024*128);
-    testg(bitonic_sort1, 1024*1024*515);
+    testg(bitonic_sort, 1024*1024*255);
+    testg(odd_even, 1024*1024*255);
+    testg(quick_sort, 1024*1024*255);
+    testg(radixsort, 1024*1024*255);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testz(quick_sort, 1<<22);
-    int z = 1000;
+    int z = 10;
     while(z--) {
-//        testz(quick_sort, 1<<28);
+        testg(bitonic_sort, 1024*1024*255);
+        testg(odd_even, 1024*1024*255);
+        testg(quick_sort, 1024*1024*255);
+        testg(radixsort, 1024*1024*255);
     }
 //    testg(bitonic_sort1, 1024*1024*32);
 //    testg(bitonic_sort1, 1024*1024*64);

@@ -2,6 +2,7 @@
 #include <cassert>
 #include "quick_debug.h"
 #include "../utils/utils.h"
+#include <algorithm>
 
 void checkMem() {
     DevArray *doneArrays1;
@@ -74,5 +75,4 @@ assertToSort(CUdeviceptr &out, CUdeviceptr &in, std::vector<WorkUnit> &work, std
 
     }
     cuMemFreeHost(toSort);
-//
 }
