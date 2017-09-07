@@ -64,8 +64,8 @@ typedef void (data_provider)(int*, int);
 
 typedef double (*func_withtime)(int *, int);
 
-//vector<func_withtime > sorts = {bitonic_sort, odd_even};
-vector<func_t > sorts = {quick_sort};
+//vector<func_withtime > sorts = {bitonic_sort, radixsort, quick_sort};
+vector<func_t > sorts = {bitonic_sort, radixsort, quick_sort};
 //                         odd_even, radixsort, quick_sort};
 
 double testTime(func_t f, int *c1, int n, string name) {
@@ -150,10 +150,10 @@ void testAvg(int *initData, int n, data_provider provider, int times) {
     }
 //    avgs[sorts.size()] = avg(allres[sorts.size()]);
 
-    cout << "QUICK " << avgs[0] << endl;
+    cout << "BITONIC " << avgs[0] << endl;
 //    cout << "ODD_EVEN "<< avgs[1]<< endl;
-//    cout<<"RADIX "<< avgs[2]<<endl;
-//    cout<<"QUICK "<< avgs[3]<< endl;
+    cout<<"RADIX "<< avgs[1]<<endl;
+    cout<<"QUICK "<< avgs[2]<< endl;
 //    cout<<"STD " << avgs[4]<< endl;
 }
 
@@ -208,7 +208,7 @@ void allTests(int n) {
     int *tab = (int *) malloc(n * sizeof(int));
 
     loggTitle("rand");
-    testAvg(tab, n, randDP, 8);
+    testAvg(tab, n, randDP, 10);
 
     loggTitle("zero");
     testAvg(tab, n, zeroDP, 1);
@@ -224,7 +224,7 @@ void allTests(int n) {
 
 
 void effTests() {
-    for (int i= 19; i <= 29; ++i) {
+    for (int i= 20; i <= 29; ++i) {
         allTests((1 << i));
     }
     cout << "END" << endl;
@@ -401,11 +401,11 @@ void test_correctness() {
 //    testg(bitonic_sort1, 16*7);
 //    testg(bitonic_sort1, 7*7*2);
 //    testg(bitonic_sort1, 1023*1023*345);
-    testg(bitonic_sort1, 1024*1024*16);
-    testg(bitonic_sort1, 1024*1024*32);
-    testg(bitonic_sort1, 1024*1024*64);
-    testg(bitonic_sort1, 1024*1024*128);
-    testg(bitonic_sort1, 1024*1024*256);
+//    testg(bitonic_sort1, 1024*1024*16);
+//    testg(bitonic_sort1, 1024*1024*32);
+//    testg(bitonic_sort1, 1024*1024*64);
+//    testg(bitonic_sort1, 1024*1024*128);
+    testg(bitonic_sort1, 1024*1024*515);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*216);
 //    testg(bitonic_sort1, 1024*1024*216);
@@ -443,8 +443,8 @@ int main() {
 
 
 //
-    effTests();
-//    test_correctness();
+//    effTests();
+    test_correctness();
     return 0;
 }
 

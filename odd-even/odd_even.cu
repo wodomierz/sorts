@@ -1,14 +1,15 @@
 #include "../utils/kernel_commons.cuh"
 #include "odd_even.cuh"
+#include "odd_even.h"
 
 extern "C" {
 
 __global__
 void odd_even(int *to_sort) {
-    __shared__ int tab[2048];
+    __shared__ int tab[ODD_EVEN_BLOCK];
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
-    int offset = blockId * blockDim.x * 2;
-    odd_even_device<10>(to_sort + offset, tab);
+    int offset = blockId * ODD_EVEN_BLOCK;
+    odd_even_device<ODD_EVEN_THREADS_POW>(to_sort + offset, tab);
 }
 
 __global__

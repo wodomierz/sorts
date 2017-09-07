@@ -10,7 +10,6 @@
 __device__ __forceinline__
 int median(int *array, int start, int end) {
     int tab[3] = {array[start], array[(start + end - 1) / 2], array[end - 1]};
-    //improve
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < i; ++j) {
             if (tab[i] < tab[j]) {
@@ -110,8 +109,8 @@ void gqsort_dev(Block *blocks, int *in, int *out, WorkUnit *news) {
         }
     }
     __syncthreads();
-    if (lbeg ==1 ) {
-        for (i = start + threadIdx.x; i < end; i+= Threads) {
+    if (lbeg == 1) {
+        for (i = start + threadIdx.x; i < end; i += Threads) {
             out[i] = pivot;
         }
     }

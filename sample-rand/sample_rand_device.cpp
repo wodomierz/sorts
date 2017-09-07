@@ -28,7 +28,7 @@ namespace sample_rand {
     }
 
     void Device::scatter(sample_rand::Context &memory, CUstream cUstream) {
-        BaseData &baseData = memory.baseData;
+        BaseKernelData &baseData = memory.baseData;
         void *args2[]{&memory.deviceToSort, &memory.out, &memory.bstPtr, &memory.blockPrefsums,
                       &baseData.number_of_blocks, &memory.baseData.size};
         safeLaunch1DimStream(scatterCU, baseData.x_dim, baseData.y_dim, THREADS_PER_BLOCK, args2, cUstream);
@@ -36,7 +36,7 @@ namespace sample_rand {
     }
 
     void Device::counters(sample_rand::Context &memory, CUstream cUstream) {
-        BaseData &baseData = memory.baseData;
+        BaseKernelData &baseData = memory.baseData;
         void *args1[] = {&memory.deviceToSort, &memory.bstPtr, &memory.blockPrefsums, &memory.baseData.number_of_blocks,
                          &memory.baseData.size};
         safeLaunch1DimStream(countersCU, baseData.x_dim, baseData.y_dim, THREADS_PER_BLOCK, args1, cUstream);

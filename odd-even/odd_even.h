@@ -1,6 +1,11 @@
 #ifndef SORTS_ODD_EVEN_H
 #define SORTS_ODD_EVEN_H
 
+#define ODD_EVEN_THREADS_POW 10
+#define ODD_EVEN_BLOCK_POW (ODD_EVEN_THREADS_POW + 1)
+#define ODD_EVEN_THREADS (1 << ODD_EVEN_THREADS_POW)
+#define ODD_EVEN_BLOCK (1 << ODD_EVEN_BLOCK_POW)
+
 void odd_even(int *, int);
 
 #endif //SORTS_ODD_EVEN_H

@@ -1,10 +1,7 @@
 #include "../utils/cuda_device.h"
 #include "../prefsum/prefsum.cuh"
 #include "../utils/kernel_commons.cuh"
-
-#define THREADS_RADIX 1024
-#define ELEMENTS_RADIX 4
-#define BLOCK_RADIX (THREADS_RADIX*ELEMENTS_RADIX)
+#include "radixsort.h"
 
 template<int Threads, int Elements>
 __device__ __forceinline__
@@ -51,7 +48,7 @@ void sort_dev(int *source, int *destination, int *prefixSum, int *prefixSums, in
 
 template<int Threads, int Elements>
 __device__ __forceinline__
-void pref_sum_dev(int* data, int* offsetPrefSums, int size) {
+void pref_sum_dev(int *data, int *offsetPrefSums, int size) {
     int const BlockSize = Threads * Elements;
     __shared__ int shared[2][BlockSize];
 
@@ -73,44 +70,44 @@ void pref_sum_dev(int* data, int* offsetPrefSums, int size) {
 extern "C" {
 __global__
 void prefixSum(int *in, int *out, int *prefixSums, int size, int mask) {
-    radix_pref_sum_dev<THREADS_RADIX, ELEMENTS_RADIX>(in, out, prefixSums, size, mask);
+    radix_pref_sum_dev<RADIX_THREADS, RADIX_ELEMENTS>(in, out, prefixSums, size, mask);
 }
 
 __global__
 void sort(int *source, int *destination, int *prefixSum, int *prefixSums, int mask, int n, int blocks_num) {
-    sort_dev<THREADS_RADIX, ELEMENTS_RADIX>(source, destination, prefixSum, prefixSums, mask, n, n - prefixSums[blocks_num]);
+    sort_dev<RADIX_THREADS, RADIX_ELEMENTS>(source, destination, prefixSum, prefixSums, mask, n,
+                                            n - prefixSums[blocks_num]);
 
 }
 
 
 __global__
-void one_block_prefsum(int* data, int size) {
-    const int Threads = THREADS_RADIX;
-    __shared__ int shared[2][BLOCK_RADIX];
+void one_block_prefsum(int *data, int size) {
+    __shared__ int shared[2][RADIX_BLOCK];
 
-    for (int thid = threadIdx.x; thid <BLOCK_RADIX; thid += Threads) {
+    for (int thid = threadIdx.x; thid < RADIX_BLOCK; thid += RADIX_THREADS) {
         shared[0][thid] = thid < size ? data[thid] : 0;
     }
 
     __syncthreads();
     bool to = 0;
-    prefixSumDev<Threads, ELEMENTS_RADIX>(shared, to);
+    prefixSumDev<RADIX_THREADS, RADIX_ELEMENTS>(shared, to);
 
-    for (int thid = threadIdx.x; thid < BLOCK_RADIX && thid < size; thid += Threads) {
+    for (int thid = threadIdx.x; thid < RADIX_BLOCK && thid < size; thid += RADIX_THREADS) {
         data[thid] = shared[to][thid];
     }
 }
 
 __global__
-void pref_sum(int* data, int* offsetPrefSums, int size) {
-    pref_sum_dev<THREADS_RADIX, ELEMENTS_RADIX>(data, offsetPrefSums, size);
+void pref_sum(int *data, int *offsetPrefSums, int size) {
+    pref_sum_dev<RADIX_THREADS, RADIX_ELEMENTS>(data, offsetPrefSums, size);
 }
 __global__
-void add(int* data, int* offsetPrefSums, int size) {
+void add(int *data, int *offsetPrefSums, int size) {
     int blockId = one_dimension_blockId();
-    size -= blockId * BLOCK_RADIX;
-    data += blockId * BLOCK_RADIX;
-    for (int thid = threadIdx.x; thid < BLOCK_RADIX && thid < size; thid += THREADS_RADIX) {
+    size -= blockId * RADIX_BLOCK;
+    data += blockId * RADIX_BLOCK;
+    for (int thid = threadIdx.x; thid < RADIX_BLOCK && thid < size; thid += RADIX_THREADS) {
         data[thid] += offsetPrefSums[blockId];
     }
 }
@@ -121,7 +118,7 @@ int cdiv(int divident, int power_of_2) {
 }
 
 __global__
-void global_sums(int* offsetPrefSums, int size) {
+void global_sums(int *offsetPrefSums, int size) {
     global_prefsums(offsetPrefSums, size);
 }
 

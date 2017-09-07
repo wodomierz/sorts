@@ -7,7 +7,7 @@
 
 __device__ __forceinline__
 int one_dimension_blockId() {
-    return blockIdx.x + blockIdx.y * blockDim.x;
+    return blockIdx.x + blockIdx.y * gridDim.x;
 }
 
 template<int BlockSize>

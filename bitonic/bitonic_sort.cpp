@@ -4,13 +4,14 @@
 #include "cuda.h"
 #include <cstdio>
 #include <iostream>
-#include <ctime>
 #include "../utils/utils.h"
-#include "../utils/BaseData.h"
+#include "../utils/BaseKernelData.h"
 
-static int ThreadsPow = 10;
-static int THREADS_IN_BLOCK = (1 << ThreadsPow);
-static int BlockSize = THREADS_IN_BLOCK *2;
+static const int ThreadsPow = BITONIC_THREADS_POW;
+static const int BlockPow = ThreadsPow + 1;
+static const int ThreadsInBlock = (1 << ThreadsPow);
+static const int BlockSize = (1 << BlockPow);
+
 using namespace std;
 
 void bitonic_sort(int *to_sort, int size) {
@@ -36,15 +37,15 @@ void bitonic_sort(int *to_sort, int size) {
     manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"));
 
 
-    int algined_size = ceil_div(size, BlockSize) * BlockSize;
+    int algined_size = expand_to_power_of_2(size, BlockPow);
     int delta = algined_size - size;
 
     int n;
     int power_n;
     for (n = 1, power_n = 0; n < algined_size; n <<= 1, power_n++);
 
-    BaseData baseData1(algined_size, BlockSize);
-    BaseData baseData2(n/2, THREADS_IN_BLOCK);
+    BaseKernelData baseData1(algined_size, BlockSize);
+    BaseKernelData baseData2(n / 2, ThreadsInBlock);
 
     cuMemHostRegister((void *) to_sort, size * sizeof(int), 0);
     CUdeviceptr deviceToSort;
@@ -54,34 +55,26 @@ void bitonic_sort(int *to_sort, int size) {
     CUdeviceptr shiftedToSort = addIntOffset(deviceToSort, delta);
 
     cuMemcpyHtoD(shiftedToSort, to_sort, size * sizeof(int));
+
     cuMemsetD32(deviceToSort, 0, delta);
 
-
-
-//    cuCtxSynchronize();
-//    std::clock_t start = std::clock();
-
     void *args[] = {&deviceToSort};
-    safeLaunch1Dim(bitonic_merge2, baseData1.x_dim, baseData1.y_dim, THREADS_IN_BLOCK, args);
+    safeLaunch1Dim(bitonic_merge2, baseData1.x_dim, baseData1.y_dim, ThreadsInBlock, args);
     for (int d_half_traingle_p = ThreadsPow + 1; d_half_traingle_p <= power_n - 1; d_half_traingle_p++) {
         void *args1[] = {&deviceToSort, &d_half_traingle_p, &algined_size};
 
-        safeLaunch1Dim(bitonic_triangle_merge, baseData2.x_dim, baseData2.y_dim, THREADS_IN_BLOCK, args1);
-        for (int d_p = d_half_traingle_p - 1; d_p >= ThreadsPow + 1; d_p--) {
+        safeLaunch1Dim(bitonic_triangle_merge, baseData2.x_dim, baseData2.y_dim, ThreadsInBlock, args1);
+        for (int d_p = d_half_traingle_p - 1; d_p >= BlockPow; d_p--) {
             void *args2[] = {&deviceToSort, &d_p, &algined_size};
-            safeLaunch1Dim(bitonic_merge,  baseData2.x_dim, baseData2.y_dim, THREADS_IN_BLOCK,args2);
+            safeLaunch1Dim(bitonic_merge, baseData2.x_dim, baseData2.y_dim, ThreadsInBlock, args2);
         }
-        safeLaunch1Dim(phase2_global, baseData1.x_dim, baseData1.y_dim, THREADS_IN_BLOCK,args);
+        safeLaunch1Dim(phase2_global, baseData1.x_dim, baseData1.y_dim, ThreadsInBlock, args);
     }
-
-//    cuCtxSynchronize();
-//    std::clock_t end = std::clock();
 
     cuMemcpyDtoH((void *) to_sort, shiftedToSort, size * sizeof(int));
 
-    cuMemFree(deviceToSort);
     cuMemHostUnregister(to_sort);
+    cuMemFree(deviceToSort);
     cuCtxDestroy(cuContext);
-//    return (end - start) / 1000.0;
 }
 

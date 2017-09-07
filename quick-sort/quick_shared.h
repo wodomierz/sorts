@@ -1,6 +1,4 @@
-//
-// Created by Miron Ficak on 05/08/2017.
-//
+
 #include "cuda.h"
 
 #ifndef SORTS_QUICK_SHARED_H

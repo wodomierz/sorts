@@ -1,7 +1,3 @@
-//
-// Created by Miron Ficak on 03/08/2017.
-//
-
 #ifndef SORTS_CUDE_DEVICE_H
 #define SORTS_CUDE_DEVICE_H
 

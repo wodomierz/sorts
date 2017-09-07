@@ -1,8 +1,3 @@
-//
-// Created by Miron Ficak on 14/08/2017.
-//
-
-
 
 #ifndef SORTS_QUICK_DEBUG_H
 

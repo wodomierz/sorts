@@ -1,7 +1,3 @@
-//
-// Created by Miron Ficak on 03/08/2017.
-//
-
 #ifndef SORTS_QUICK_SORT_DEVICE_H
 #define SORTS_QUICK_SORT_DEVICE_H
 
@@ -21,7 +17,7 @@ namespace quick {
 
         int pivot(CUdeviceptr to_sort, int size);
 
-        void gqsort(Block *blocks, int blocks_count, CUdeviceptr in, CUdeviceptr out, WorkUnit* news);
+        void gqsort(Block *blocks, int blocks_count, CUdeviceptr in, CUdeviceptr out, WorkUnit *news);
 
         void lqsort(DevArray *seqs, int seq_count, CUdeviceptr &to_sort, CUdeviceptr &buffer);
     };

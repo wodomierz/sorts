@@ -1,11 +1,7 @@
-//
-// Created by Miron Ficak on 14/08/2017.
-//
 
 #include <cassert>
 #include "quick_debug.h"
 #include "../utils/utils.h"
-#include <algorithm>
 
 void checkMem() {
     DevArray *doneArrays1;

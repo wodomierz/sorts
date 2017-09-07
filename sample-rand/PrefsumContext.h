@@ -6,12 +6,12 @@
 #define SORTS_PREFSUM_CONTEXT_H
 
 
-#include "../utils/BaseData.h"
+#include "../utils/BaseKernelData.h"
 
 namespace sample_rand {
     class PrefsumContext {
     public:
-        BaseData baseData;
+        BaseKernelData baseData;
         CUdeviceptr batchSums;
 
         PrefsumContext(int, CUdeviceptr batchSums);

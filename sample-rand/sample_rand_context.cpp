@@ -33,7 +33,7 @@ namespace sample_rand {
 
     Context::Context(Context &globalContext,int offset,int size, int prefsum_offset,int prefsumMemOff, int big_work_offset) : Context(globalContext) {
         this->offset = offset;
-        this->baseData = BaseData(size, BLOCK_SIZE);
+        this->baseData = BaseKernelData(size, BLOCK_SIZE);
 
 
         deviceToSort = addIntOffset(deviceToSort, offset);

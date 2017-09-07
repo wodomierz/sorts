@@ -7,12 +7,12 @@
 
 
 #include <cuda.h>
-#include "../utils/BaseData.h"
+#include "../utils/BaseKernelData.h"
 
 namespace sample_rand {
     class Context {
     public:
-        BaseData baseData;
+        BaseKernelData baseData;
         int offset;
         int *sample_offsets;
         CUdeviceptr prefsumsMem;

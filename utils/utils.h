@@ -18,7 +18,6 @@
 void manageError(CUresult, int, const char *);
 void manageErrorWithMessage(CUresult, std::string, int, const char *);
 
-//typedef std::vector<std::string> String;
 typedef bool (*Filter)(int, int *);
 
 static Filter everything = [](int i, int *val) -> bool { return true; };

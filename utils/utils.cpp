@@ -1,7 +1,6 @@
 
 #include <cassert>
 #include "utils.h"
-#include <algorithm>
 
 
 void manageError(CUresult res, int line, const char *file) {
@@ -34,7 +33,6 @@ void
 print_Devtab(CUdeviceptr &dtab, int size, int prints, int from, const char *title, Printer printer, Filter filter) {
     int *tab;
 
-//    prints = std::min(size, prints);
     cuCtxSynchronize();
     cuMemAllocHost((void **) &tab, sizeof(int) * size);
 
@@ -81,9 +79,3 @@ T *cuMemAllocH(int size);
 template<typename T>
 T *cuMemAllocH(int size);
 
-//template<typename T>
-//T *cuMemAllocH(int size) {
-//    T* result;
-//    cuMemAllocHost((void**) &result, size * sizeof(T));
-//    return result;
-//}

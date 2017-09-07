@@ -1,12 +1,7 @@
 #include <vector>
 #include "quick_sort.h"
-#include "cuda.h"
-#include "../utils/utils.h"
 #include "quick_sort_device.h"
-#include "quick_shared.h"
 #include <list>
-#include <algorithm>
-#include <cassert>
 #include <ctime>
 
 int pivot(CUdeviceptr to_sort, int size, quick::Device &device) {
@@ -31,25 +26,10 @@ inline Block lastBlock(int seq_index, SharedVars *parents, WorkUnit &unit, int b
     return block(seq_index, parents, unit, bstart, unit.seq.end);
 };
 
+
 void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &work, int block_size) {
     int total_block_index = 0;
     int seq_index = -1;
-
-    auto block = [&seq_index, parents](WorkUnit &unit, int &start, int end) -> Block {
-        return {
-            {
-                {start, end},
-                unit.pivot
-            },
-            parents + seq_index
-        };
-    };
-    auto middleBlock = [block, block_size](WorkUnit &unit, int bstart) -> Block {
-        return block(unit, bstart, bstart + block_size);
-    };
-    auto lastBlock = [block](WorkUnit &unit, int bstart) -> Block {
-        return block(unit, bstart, unit.seq.end);
-    };
 
     for (WorkUnit unit : work) {
         int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
@@ -61,9 +41,10 @@ void prepareBlocks(Block *blocks, SharedVars *parents, std::vector<WorkUnit> &wo
         );
         int i;
         for (i = 0; i < block_count - 1; i++) {
-            blocks[total_block_index++] = middleBlock(unit, unit.seq.start + block_size * i);
+            blocks[total_block_index++] = middleBlock(seq_index, parents, block_size, unit,
+                                                      unit.seq.start + block_size * i);
         }
-        blocks[total_block_index++] = lastBlock(unit, unit.seq.start + block_size * i);
+        blocks[total_block_index++] = lastBlock(seq_index, parents, unit, unit.seq.start + block_size * i);
     }
 }
 
@@ -75,25 +56,21 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
     std::vector<WorkUnit> work = {WorkUnit(DevArray(0, size), start_pivot)};
     std::vector<WorkUnit> done;
 
-    int block_size = (1 << QUICKTHREADS_POW) * 16;
+    int max_seq = ceil_div(size, QUICK_BLOCK_SIZE);
 
-    int max_seq = ceil_div(size, block_size);
-
-    Block *blocks = cuMemAllocH<Block>(2*max_seq);
+    Block *blocks = cuMemAllocH<Block>(2 * max_seq);
     SharedVars *parents = cuMemAllocH<SharedVars>(max_seq);
     WorkUnit *news = cuMemAllocH<WorkUnit>(2 * max_seq);
 
 
-    while (!work.empty() && work.size() + done.size() <= max_seq)
-    {
+    while (!work.empty() && work.size() + done.size() <= max_seq) {
         int total_block_count = 0;
         for (WorkUnit unit : work) {
-            int block_count = ceil_div(unit.seq.end - unit.seq.start, block_size);
+            int block_count = ceil_div(unit.seq.end - unit.seq.start, QUICK_BLOCK_SIZE);
             total_block_count += block_count;
         }
-        //consider vector and register array of this vector??
         int seq_num = work.size();
-        prepareBlocks(blocks, parents, work, block_size);
+        prepareBlocks(blocks, parents, work, QUICK_BLOCK_SIZE);
         device.gqsort(blocks, total_block_count, in, out, news);
 
         cuCtxSynchronize();
@@ -101,8 +78,8 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         for (int i = 0; i < seq_num; ++i) {
             for (int j = 0; j < 2; ++j) {
                 WorkUnit &workUnit = news[2 * i + j];
-                if (arraySize(workUnit.seq) < block_size) { //diff algo
-                    if(arraySize(workUnit.seq) > 1) {
+                if (arraySize(workUnit.seq) < QUICK_BLOCK_SIZE) { //diff algo
+                    if (arraySize(workUnit.seq) > 1) {
                         done.push_back(workUnit);
                     }
                 } else {
@@ -110,7 +87,6 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
                 }
             }
         }
-        //todo improve
         cuMemcpyDtoD(in, out, size * sizeof(int));
     }
     done.insert(done.end(), work.begin(), work.end());
@@ -120,7 +96,6 @@ void sort(int size, CUdeviceptr &in, CUdeviceptr &out) {
         doneArrays[i] = done[i].seq;
     }
 
-    //TODO improve
     if (done.size() > 0) {
         device.lqsort(doneArrays, done.size(), in, out);
     }
@@ -149,14 +124,12 @@ void quick_sort(int *to_sort, int size) {
     cuMemHostRegister(to_sort, sizeof(int) * size, 0);
     CUdeviceptr in = cuAllocD<int>(size);
     cuMemcpyHtoD(in, to_sort, size * sizeof(int));
-//    std::clock_t start = std::clock();
 
     quick_sort_device(in, size);
-//    std::clock_t end = std::clock();
 
     cuMemcpyDtoH(to_sort, in, sizeof(int) * size);
+    cuMemHostUnregister(to_sort);
     cuMemFree(in);
 
     cuCtxDestroy(cuContext);
-//    return (end -start) / 1000.0;
 }

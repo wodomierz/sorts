@@ -10,7 +10,6 @@
 extern "C" {
 
 
-
 __global__
 void bitonic_merge2(int *to_sort) {
     __shared__ int tab[BIT_BLOCK];

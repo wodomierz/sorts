@@ -1,16 +1,15 @@
 #include <cstdio>
 #include <iostream>
 #include "../utils/utils.h"
-#include <ctime>
+#include "radixsort.h"
 
 using namespace std;
-static int ThreadsInBlock = 1024;
-static int BlockSize = ThreadsInBlock*4;
+static int ThreadsInBlock = RADIX_THREADS;
+static int BlockSize = ThreadsInBlock * RADIX_ELEMENTS;
 
+//size must be bigger than BlockSize !
 
-//only bigger than 2048 !
-
-double radixsort(int *to_sort, int size) {
+void radixsort(int *to_sort, int size) {
     cuInit(0);
     CUdevice cuDevice;
     manageResult(cuDeviceGet(&cuDevice, 0));
@@ -57,17 +56,12 @@ double radixsort(int *to_sort, int size) {
 
     cuMemcpyHtoD(tab[0], biggerTab, n * sizeof(int));
 
-    std::clock_t start = std::clock();
-
-    int number_of_zeros = 0;
     int mask = 0;
     CUdeviceptr number_of_zeros_dev = cuAllocD<int>(1);
 
-
-
     vector<CudaArray> prefsum_arrays;
     int prefsum_arrays_size = n;
-    while(prefsum_arrays_size > BlockSize) {
+    while (prefsum_arrays_size > BlockSize) {
         prefsum_arrays_size = ceil_div(prefsum_arrays_size, BlockSize);
         prefsum_arrays.push_back({cuAllocD<int>(prefsum_arrays_size + 1), prefsum_arrays_size});
         cuMemsetD32(prefsum_arrays.back().array, 0, 1);
@@ -82,21 +76,21 @@ double radixsort(int *to_sort, int size) {
         args[0] = &tab[mask % 2];
         cuLaunchKernel(prefixSum, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
 
-        for (int i=1 ; i<prefsum_arrays.size(); ++i) {
-            CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays[i-1].array, 1);
-            void* args[] = { &shiftedArray, &prefsum_arrays[i].array, &prefsum_arrays[i-1].size};
+        for (int i = 1; i < prefsum_arrays.size(); ++i) {
+            CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays[i - 1].array, 1);
+            void *args[] = {&shiftedArray, &prefsum_arrays[i].array, &prefsum_arrays[i - 1].size};
 
-            cuLaunchKernel(pref_sum, prefsum_arrays[i].size, 1, 1, ThreadsInBlock, 1, 1, 0,0,args, 0);
+            cuLaunchKernel(pref_sum, prefsum_arrays[i].size, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
 
         }
         CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays.back().array, 1);
-        void* args_one[] = {&shiftedArray, &prefsum_arrays.back().size};
+        void *args_one[] = {&shiftedArray, &prefsum_arrays.back().size};
 
-        cuLaunchKernel(one_block_prefsum, 1,1,1,ThreadsInBlock,1,1,0,0,args_one, 0);
+        cuLaunchKernel(one_block_prefsum, 1, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args_one, 0);
         for (int i = prefsum_arrays.size() - 1; i > 0; i--) {
-            CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays[i-1].array, 1);
-            void* args[] = { &shiftedArray, &prefsum_arrays[i].array,  &prefsum_arrays[i-1].size};
-            cuLaunchKernel(add, prefsum_arrays[i].size,1,1,ThreadsInBlock,1,1,0,0,args, 0);
+            CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays[i - 1].array, 1);
+            void *args[] = {&shiftedArray, &prefsum_arrays[i].array, &prefsum_arrays[i - 1].size};
+            cuLaunchKernel(add, prefsum_arrays[i].size, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
         }
 
         args1[0] = &tab[mask % 2];
@@ -104,9 +98,9 @@ double radixsort(int *to_sort, int size) {
         cuLaunchKernel(sort, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args1, 0);
     }
 
-    std::clock_t end = std::clock();
-
     cuMemcpyDtoH((void *) to_sort, tab[1], size * sizeof(int));
+
+    cuMemHostUnregister(to_sort);
 
     for (auto ptr: prefsum_arrays) {
         cuMemFree(ptr.array);
@@ -116,5 +110,4 @@ double radixsort(int *to_sort, int size) {
     cuMemFree(tab[1]);
     cuMemFree(localSums);
     cuCtxDestroy(cuContext);
-    return (end - start) / 1000.0;
 }
