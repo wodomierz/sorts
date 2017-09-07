@@ -50,8 +50,8 @@ void bitonic_merge_device(int *to_sort, int size, int tab[]) {
     const int THREADS = (1 << ThreadsPow);
     int threadId = threadIdx.x;
 
-    tab[threadId] = gerOrInf(to_sort, threadId, size);
-    tab[threadId + THREADS] = gerOrInf(to_sort, threadId + THREADS, size);
+    tab[threadId] = get_or_inf(to_sort, threadId, size);
+    tab[threadId + THREADS] = get_or_inf(to_sort, threadId + THREADS, size);
 
     __syncthreads();
 

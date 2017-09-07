@@ -20,26 +20,16 @@ void radixsort(int *to_sort, int size) {
     manageResult(cuModuleLoad(&cuModule, "radix/radixsort.ptx"));
     CUfunction sort;
     manageResult(cuModuleGetFunction(&sort, cuModule, "sort"));
-    CUfunction prefixSum;
-    manageResult(cuModuleGetFunction(&prefixSum, cuModule, "prefixSum"));
-
-
+    CUfunction count_and_prefsum;
+    manageResult(cuModuleGetFunction(&count_and_prefsum, cuModule, "count_and_pref_sum"));
     CUfunction pref_sum;
     manageResult(cuModuleGetFunction(&pref_sum, cuModule, "pref_sum"));
-
-
     CUfunction add;
     manageResult(cuModuleGetFunction(&add, cuModule, "add"));
-
-    CUfunction global_sums;
-    manageResult(cuModuleGetFunction(&global_sums, cuModule, "global_sums"));
-
-
     CUfunction one_block_prefsum;
     manageResult(cuModuleGetFunction(&one_block_prefsum, cuModule, "one_block_prefsum"));
 
-
-    int numberOfBlocks = (size + BlockSize - 1) / BlockSize;
+    int numberOfBlocks = ceil_div(size, BlockSize);
 
     CUdeviceptr localSums;
     CUdeviceptr tab[2];
@@ -68,13 +58,11 @@ void radixsort(int *to_sort, int size) {
     }
     void *args[5] = {NULL, &localSums, &(*prefsum_arrays.begin()), &n, &mask};
 
-    void *argssums[] = {&(*prefsum_arrays.begin()), &numberOfBlocks};
-
     void *args1[7] = {NULL, NULL, &localSums, &(*prefsum_arrays.begin()), &mask, &n, &numberOfBlocks};
 
     for (mask = 0; mask < 31; mask++) {
         args[0] = &tab[mask % 2];
-        cuLaunchKernel(prefixSum, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
+        cuLaunchKernel(count_and_prefsum, numberOfBlocks, 1, 1, ThreadsInBlock, 1, 1, 0, 0, args, 0);
 
         for (int i = 1; i < prefsum_arrays.size(); ++i) {
             CUdeviceptr shiftedArray = addIntOffset(prefsum_arrays[i - 1].array, 1);

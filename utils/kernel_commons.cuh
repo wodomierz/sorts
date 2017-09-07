@@ -55,12 +55,12 @@ void dummy_sort_dev(int *to_sort, int size) {
 }
 
 __device__ __forceinline__
-int gerOrInf(int *to_sort, int index, int size) {
+int get_or_inf(int *to_sort, int index, int size) {
     return index < size ? to_sort[index] : 2147483647; //max int
 }
 
 __device__ __forceinline__
-int getOrZero(int *tab, int i, int size) {
+int get_or_zero(int *tab, int i, int size) {
     return i < size ? tab[i] : 0;
 }
 

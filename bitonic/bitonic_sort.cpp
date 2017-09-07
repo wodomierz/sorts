@@ -1,4 +1,3 @@
-
 #include "bitonic_sort.h"
 
 #include "cuda.h"
@@ -29,13 +28,11 @@ void bitonic_sort(int *to_sort, int size) {
     CUfunction phase2_global;
     manageResult(cuModuleGetFunction(&phase2_global, cuModule, "phase2_global"));
 
-
     CUfunction bitonic_merge;
     manageResult(cuModuleGetFunction(&bitonic_merge, cuModule, "bitonic_merge"));
 
     CUfunction bitonic_triangle_merge;
     manageResult(cuModuleGetFunction(&bitonic_triangle_merge, cuModule, "bitonic_triangle_merge"));
-
 
     int algined_size = expand_to_power_of_2(size, BlockPow);
     int delta = algined_size - size;
@@ -70,7 +67,6 @@ void bitonic_sort(int *to_sort, int size) {
         }
         safeLaunch1Dim(phase2_global, baseData1.x_dim, baseData1.y_dim, ThreadsInBlock, args);
     }
-
     cuMemcpyDtoH((void *) to_sort, shiftedToSort, size * sizeof(int));
 
     cuMemHostUnregister(to_sort);

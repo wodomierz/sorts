@@ -64,7 +64,7 @@ void prefsum_dev(int *localPrefsums, int *maxPrefSums, int size) {
     size -= offset;
 
     for (int thid = threadIdx.x; thid < BlockSize; thid += Threads) {
-        shared[0][thid] = getOrZero(localPrefsums, thid, size);
+        shared[0][thid] = get_or_zero(localPrefsums, thid, size);
     }
     __syncthreads();
     pref_sum_and_move_result_dev<Threads, Elements>(shared, localPrefsums, maxPrefSums, size, blockId);

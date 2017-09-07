@@ -65,7 +65,7 @@ typedef void (data_provider)(int*, int);
 typedef double (*func_withtime)(int *, int);
 
 //vector<func_withtime > sorts = {bitonic_sort, radixsort, quick_sort};
-vector<func_t > sorts = {bitonic_sort, radixsort, quick_sort};
+vector<func_t > sorts = {bitonic_sort, quick_sort};
 //                         odd_even, radixsort, quick_sort};
 
 double testTime(func_t f, int *c1, int n, string name) {
@@ -129,7 +129,7 @@ long avg(vector<double> v) {
 
 void testAvg(int *initData, int n, data_provider provider, int times) {
 //    int times = 8;
-    int parallel_times = 2;
+    int parallel_times = 3;
 
     allres.clear();
     for (int i=0; i< sorts.size() + 1; ++i) {
@@ -152,8 +152,8 @@ void testAvg(int *initData, int n, data_provider provider, int times) {
 
     cout << "BITONIC " << avgs[0] << endl;
 //    cout << "ODD_EVEN "<< avgs[1]<< endl;
-    cout<<"RADIX "<< avgs[1]<<endl;
-    cout<<"QUICK "<< avgs[2]<< endl;
+//    cout<<"RADIX "<< avgs[1]<<endl;
+    cout<<"QUICK "<< avgs[1]<< endl;
 //    cout<<"STD " << avgs[4]<< endl;
 }
 
@@ -208,10 +208,10 @@ void allTests(int n) {
     int *tab = (int *) malloc(n * sizeof(int));
 
     loggTitle("rand");
-    testAvg(tab, n, randDP, 10);
+    testAvg(tab, n, randDP, 15);
 
     loggTitle("zero");
-    testAvg(tab, n, zeroDP, 1);
+    testAvg(tab, n, zeroDP, 2);
 
     loggTitle("asc");
     testAvg(tab, n, ascDP, 2);
@@ -224,7 +224,7 @@ void allTests(int n) {
 
 
 void effTests() {
-    for (int i= 20; i <= 29; ++i) {
+    for (int i= 28; i <= 28; ++i) {
         allTests((1 << i));
     }
     cout << "END" << endl;
@@ -449,8 +449,8 @@ int main() {
 
 
 //
-//    effTests();
-    test_correctness();
+    effTests();
+//    test_correctness();
     return 0;
 }
 

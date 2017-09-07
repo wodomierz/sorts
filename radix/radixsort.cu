@@ -5,7 +5,7 @@
 
 template<int Threads, int Elements>
 __device__ __forceinline__
-void radix_pref_sum_dev(int *in, int *out, int *prefixSums, int size, int mask) {
+void count_and_pref_sum_dev(int *in, int *out, int *prefixSums, int size, int mask) {
     int const BlockSize = Threads * Elements;
     __shared__ int shared[2][BlockSize];
 
@@ -69,8 +69,8 @@ void pref_sum_dev(int *data, int *offsetPrefSums, int size) {
 
 extern "C" {
 __global__
-void prefixSum(int *in, int *out, int *prefixSums, int size, int mask) {
-    radix_pref_sum_dev<RADIX_THREADS, RADIX_ELEMENTS>(in, out, prefixSums, size, mask);
+void count_and_pref_sum(int *in, int *out, int *prefixSums, int size, int mask) {
+    count_and_pref_sum_dev<RADIX_THREADS, RADIX_ELEMENTS>(in, out, prefixSums, size, mask);
 }
 
 __global__
@@ -111,17 +111,6 @@ void add(int *data, int *offsetPrefSums, int size) {
         data[thid] += offsetPrefSums[blockId];
     }
 }
-
-__device__ __forceinline__
-int cdiv(int divident, int power_of_2) {
-    return 1 + ((divident - 1) >> power_of_2);
-}
-
-__global__
-void global_sums(int *offsetPrefSums, int size) {
-    global_prefsums(offsetPrefSums, size);
-}
-
 
 }
 
